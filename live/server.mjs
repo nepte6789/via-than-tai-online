@@ -1,4 +1,4 @@
-// Chánh Điện Tịnh Tâm — live server
+// Vía Thần Tài Online — live server
 // Runs on the streaming PC. Serves the overlay + control panel, listens to a TikTok LIVE room,
 // keeps the list of seated viewers, generates Vietnamese voice lines with Edge TTS and pushes
 // everything to the overlay over WebSocket.
@@ -21,8 +21,8 @@ const PORT = +process.env.PORT || 3000;
 
 /* ------------------------------------------------------------------ state */
 const settings = {
-  title: 'Chánh Điện Tịnh Tâm',
-  subtitle: 'Nam Mô A Di Đà Phật',
+  title: 'Vía Thần Tài Online',
+  subtitle: 'Cung chúc phát tài, vạn sự hanh thông',
   voice: 'vi-VN-NamMinhNeural',      // or vi-VN-HoaiMyNeural
   pitch: -18,                        // Hz
   rate: -20,                         // %
@@ -93,14 +93,14 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   v.coins += coins;
   const prayer = (v.lastText && Date.now() - v.lastTextAt < 90_000 && v.lastText.length > 6) ? v.lastText : pickPrayer();
   const tier = coins >= 99 ? 3 : coins >= 10 ? 2 : 1;
-  const line = `Nam mô A Di Đà Phật. Phật tử ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
+  const line = `Cung chúc phát tài, vạn sự hanh thông. Phật tử ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
   broadcast({ t:'gift', id, name: v.name, giftName, count, coins, total: v.coins, tier, prayer });
   if (settings.gifts.readAll || coins >= settings.gifts.minDiamonds) say(line, { tag:'gift', id });
 }
 
 function pickPrayer(){
-  const P = ['Nguyện cầu gia đạo bình an, vạn sự cát tường', 'Nguyện cầu cha mẹ mạnh khỏe, sống lâu', 'Nguyện hồi hướng công đức cho khắp pháp giới chúng sinh',
-             'Nguyện cầu thân tâm an lạc, phiền não tiêu trừ', 'Nguyện cầu công việc hanh thông, gia đình hạnh phúc'];
+  const P = ['Kính chúc gia đạo bình an, tài lộc đủ đầy, vạn sự hanh thông', 'Kính chúc ông bà, cha mẹ mạnh khỏe, an khang trường thọ', 'Nguyện điều lành lan tỏa, mọi nhà an vui, sung túc',
+             'Kính chúc thân tâm an lạc, công việc thuận lợi, tài lộc bền lâu', 'Kính chúc công việc hanh thông, gia đình hạnh phúc, phát tài phát lộc'];
   return P[Math.floor(Math.random() * P.length)];
 }
 const spoken = s => String(s).replace(/[_@.]+/g, ' ').replace(/[^\p{L}\p{N}\s]/gu, '').trim() || 'ẩn danh';
@@ -129,7 +129,7 @@ async function pumpTTS(){
 
 const CHANTS = [
   'Nam mô Bổn Sư Thích Ca Mâu Ni Phật. Nguyện đem công đức này, hướng về khắp tất cả, đệ tử và chúng sinh, đều trọn thành Phật đạo.',
-  'Nam mô A Di Đà Phật. Nguyện sanh Tây Phương Tịnh Độ trung, cửu phẩm liên hoa vi phụ mẫu.',
+  'Cung chúc phát tài, vạn sự hanh thông. Nguyện sanh Tây Phương Tịnh Độ trung, cửu phẩm liên hoa vi phụ mẫu.',
   'Nam mô Đại Bi Quán Thế Âm Bồ Tát. Nguyện cho tất cả chúng sinh thân tâm an lạc, tai qua nạn khỏi.',
   'Quán Tự Tại Bồ Tát hành thâm Bát Nhã Ba La Mật Đa thời, chiếu kiến ngũ uẩn giai không, độ nhất thiết khổ ách.',
 ];
