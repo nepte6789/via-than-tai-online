@@ -1,12 +1,12 @@
-# Chánh Điện Tịnh Tâm
+# Vía Thần Tài Online
 
-Chánh điện online 2.5D cho TikTok LIVE. Mỗi người xem bình luận là bước vào chánh điện, ngồi xuống bồ đoàn tụng kinh. Ai tặng quà sẽ được xướng tên hồi hướng bằng giọng đọc tiếng Việt. Có nhạc thiền, chuông, mõ và đọc kinh định kỳ.
+Không gian Vía Thần Tài Online 2.5D cho TikTok LIVE. Người xem tương tác trên sân tài lộc; người tặng quà được xướng tên cùng lời chúc may mắn, bình an và hanh thông bằng giọng đọc tiếng Việt. Giữ nguyên hệ thống nhạc nền, chuông mõ, hiệu ứng và tương tác.
 
 Mã nguồn chia sẻ miễn phí (MIT). Có hai phần:
 
 | Thư mục | Là gì |
 |---|---|
-| `index.html`, `assets/` | Bản web tĩnh cho mọi người tự vào ngồi tụng (đăng lên Cloudflare Pages) |
+| `index.html`, `assets/` | Bản web tĩnh cho mọi người tự vào tham gia (đăng lên Cloudflare Pages) |
 | `live/` | Bộ công cụ phát LIVE: server Node, overlay 9:16, bảng điều khiển |
 
 ## Chạy bộ LIVE trên máy phát
@@ -30,7 +30,7 @@ Chưa live vẫn thử được: dùng **Thử tương tác**, **Đổ người 
 
 - **Bình luận bất kỳ**: được vào ngồi (tối đa 100 chỗ, chỗ ngồi tự mở rộng 24 → 36 → 64 → 100). Đầy chỗ thì người im lặng lâu nhất mà chưa tặng quà sẽ nhường chỗ.
 - **Bình luận đúng một từ** `nam`, `nữ`, `sư`, `ni`, `tiểu`, `bà`, `cao tăng`: đổi hình nhân vật. Câu "Nam mô A Di Đà Phật" không bị hiểu nhầm thành "nam".
-- **Tặng quà**: banner xướng tên, giọng đọc hồi hướng (lấy lời nguyện từ bình luận gần nhất của người đó nếu có), hiệu ứng theo giá trị quà, cộng điểm vào bảng Công Đức.
+- **Tặng quà**: banner xướng tên, giọng đọc hồi hướng (lấy lời nguyện từ bình luận gần nhất của người đó nếu có), hiệu ứng theo giá trị quà, cộng điểm vào bảng Bảng Tài Lộc.
 - **Thả tim**: tim bay trên đầu nhân vật.
 
 ## Bảo mật
@@ -71,7 +71,7 @@ Việc sử dụng mã nguồn đồng nghĩa với việc bạn đã đọc và
 
 > **Disclaimer (EN):** This project is shared free of charge for educational purposes only and is provided "AS IS", without warranty of any kind. Anyone who uses, modifies or redistributes it is solely responsible for their own content, streams, donations, compliance with TikTok and other platforms' terms, and applicable laws. The author is not affiliated with, does not endorse, and accepts no liability for any channel, account, product or activity built with this code, nor for any direct or indirect damages.
 
-Xin cảm ơn và chúc bạn thân tâm an lạc. Nam mô A Di Đà Phật.
+Xin cảm ơn và chúc bạn thân tâm an lạc. Cung chúc phát tài, vạn sự hanh thông.
 
 ## Giấy phép
 
