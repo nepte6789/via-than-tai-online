@@ -42,7 +42,7 @@ const CAPS = [24, 36, 64, 100];
 function capacity(){ if (settings.seatMode !== 'auto') return +settings.seatMode; const n = viewers.size; return CAPS.find(c => n <= c) || 100; }
 
 /* skins: sprites that exist in /assets. Walking strips exist for man / woman / granny. */
-// A comment changes the outfit only when it IS the keyword (≤ 3 words), so "Nam mô A Di Đà Phật" never reads as "nam".
+// A comment changes the outfit only when it IS the keyword (≤ 3 words), so "Cung chúc phát tài, vạn sự hanh thông" never reads as "nam".
 const SKIN_WORDS = [
   ['master', ['cao tăng','cao tang']], ['monk', ['sư','su','sư thầy','su thay','thầy','thay']], ['nun', ['ni','ni cô','ni co','sư cô','su co']],
   ['child', ['tiểu','tieu','chú tiểu','chu tieu','bé','be']], ['granny', ['bà','ba','áo nâu','ao nau','cụ','cu']],
@@ -128,10 +128,10 @@ async function pumpTTS(){
 }
 
 const CHANTS = [
-  'Nam mô Bổn Sư Thích Ca Mâu Ni Phật. Nguyện đem công đức này, hướng về khắp tất cả, đệ tử và chúng sinh, đều trọn thành Phật đạo.',
-  'Cung chúc phát tài, vạn sự hanh thông. Nguyện sanh Tây Phương Tịnh Độ trung, cửu phẩm liên hoa vi phụ mẫu.',
-  'Nam mô Đại Bi Quán Thế Âm Bồ Tát. Nguyện cho tất cả chúng sinh thân tâm an lạc, tai qua nạn khỏi.',
-  'Quán Tự Tại Bồ Tát hành thâm Bát Nhã Ba La Mật Đa thời, chiếu kiến ngũ uẩn giai không, độ nhất thiết khổ ách.',
+  'Kính chúc mọi nhà bình an, làm ăn phát đạt, tài lộc dồi dào, vạn sự như ý.',
+  'Cung chúc phát tài, vạn sự hanh thông, gia đạo an khang, phú quý trường tồn.',
+  'Kính chúc quý khách thân tâm an lạc, gặp nhiều may mắn, mọi việc thuận buồm xuôi gió.',
+  'Chúc năm mới tài lộc đủ đầy, công danh rộng mở, gia đình hòa thuận, phúc khí viên mãn.',
 ];
 let chantIdx = 0, chantTimer = null;
 function chant(){ const text = CHANTS[chantIdx++ % CHANTS.length]; broadcast({ t:'chant', text }); say(text, { tag:'chant' }); }
@@ -192,7 +192,7 @@ function onControl(m){
   switch (m.cmd){
     case 'connect': connectTikTok(m.uniqueId); break;
     case 'disconnect': disconnectTikTok(); addLog('Đã ngắt kết nối TikTok'); break;
-    case 'chat': { const n = String(m.name || 'Khách').slice(0, 18); onChat('sim_' + n, n, String(m.text || 'Nam mô A Di Đà Phật').slice(0, 120)); break; }
+    case 'chat': { const n = String(m.name || 'Khách').slice(0, 18); onChat('sim_' + n, n, String(m.text || 'Cung chúc phát tài, vạn sự hanh thông').slice(0, 120)); break; }
     case 'gift': { const n = String(m.name || 'Khách').slice(0, 18); onGift('sim_' + n, n, String(m.gift || 'Hoa hồng').slice(0, 30), clamp(m.count, 1, 99), clamp(m.diamonds, 1, 50000)); break; }
     case 'fill': fillDemo(clamp(m.n, 1, 100)); addLog(`Đổ người mẫu: ${viewers.size} người`); break;
     case 'clear': clearSeats(); break;
@@ -220,8 +220,8 @@ function applySettings(o){ for (const [k, fn] of Object.entries(SETTING_RULES)) 
 
 /* ----------------------------------------------------------------- bots */
 let botTimer = null;
-const BOT_LINES = ['Nam mô A Di Đà Phật', 'Nam mô Bổn Sư Thích Ca Mâu Ni Phật', 'Cầu cho gia đình bình an', 'Con xin thành tâm sám hối', 'nữ', 'nam', 'bà',
-  'Nguyện cầu cha mẹ mạnh khỏe', 'Mô Phật, an lạc quá', 'Chúc mọi người một ngày bình an', 'sư', 'Cầu công việc hanh thông'];
+const BOT_LINES = ['Cung chúc phát tài, vạn sự hanh thông', 'Chúc phát tài, phát lộc', 'Cầu cho gia đình bình an', 'Cầu mong mọi điều tốt lành', 'nữ', 'nam', 'bà',
+  'Kính chúc cha mẹ mạnh khỏe, an khang', 'Mô Phật, an lạc quá', 'Chúc mọi người một ngày bình an', 'sư', 'Cầu công việc hanh thông'];
 function setBots(on, n, pace){
   clearInterval(botTimer); botTimer = null;
   if (on){
