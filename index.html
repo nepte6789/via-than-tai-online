@@ -100,7 +100,7 @@ input::placeholder{color:#7d6a52}
   <div id="gate">
     <form id="gateForm">
       <h1>Vía Thần Tài Online</h1>
-      <p>Nhập pháp danh, chọn y phục rồi vào an tọa. Đây là bản thử để kiểm tra giao diện 2.5D: nút quà ở dưới mô phỏng donation TikTok.</p>
+      <p>Nhập Tên hiển thị, chọn y phục rồi vào an tọa. Đây là bản thử để kiểm tra giao diện 2.5D: nút quà ở dưới mô phỏng donation TikTok.</p>
       <label for="dharma">Pháp danh</label>
       <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Diệu Hạnh, Minh Tâm…" required>
       <label>Y phục</label>
@@ -110,8 +110,8 @@ input::placeholder{color:#7d6a52}
         <button type="button" data-skin="granny" aria-pressed="false">Áo nâu</button>
       </div>
       <div class="row">
-        <button type="submit" class="btn primary">Vào chánh điện</button>
-        <span class="hint">Chạm vào chánh điện để tụng một câu.</span>
+        <button type="submit" class="btn primary">Tham gia Vía Thần Tài</button>
+        <span class="hint">Gửi lời chúc tài lộc và may mắn.</span>
       </div>
       <div class="row">
         <span class="hint">Thực hiện bởi Kent Juno · mã nguồn mở</span>
@@ -279,13 +279,13 @@ try { const s=localStorage.getItem('phapdanh'); if(s) input.value=s; } catch(e){
 form.addEventListener('submit', e=>{
   e.preventDefault();
   const name=input.value.trim().replace(/\s+/g,' ').slice(0,20); if(!name) return;
-  if(!freeSeat()){ showToast('Chánh điện đã kín chỗ, xin chờ một lát.'); return; }
+  if(!freeSeat()){ showToast('Không gian đã đủ chỗ, xin chờ một lát.'); return; }
   try{ localStorage.setItem('phapdanh',name); }catch(e){}
   audioStart();
   me = addVisitor(name, mySkin, false, true);
   gate.hidden=true; document.getElementById('me').hidden=false; document.getElementById('meName').textContent=name;
   for (const id of ['mute','leave','gifts','nextTrack']) document.getElementById(id).hidden=false;
-  say(name,' đã vào chánh điện'); showToast('Hoan nghênh '+name+' vào chánh điện'); ttsSpeak('Hoan nghênh '+name+' vào chánh điện');
+  say(name,' đã tham gia'); showToast('Hoan nghênh '+name+' tham gia Vía Thần Tài'); ttsSpeak('Hoan nghênh '+name+' tham gia Vía Thần Tài');
 });
 document.getElementById('gifts').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||!me) return; donate(me, +b.dataset.coins, b.dataset.fx, SUTRA[Math.floor(Math.random()*SUTRA.length)]); });
 document.getElementById('nextTrack').addEventListener('click', ()=>{ if(AC) playTrack(trackIdx+1); });
