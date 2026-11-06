@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Chánh điện online: nhập pháp danh, an tọa tụng kinh cùng mọi người, nghe nhạc thiền.">
+<meta name="description" content="Vía Thần Tài Online: gửi lời cầu chúc bình an, may mắn và tài lộc.">
 <meta name="theme-color" content="#0c0705">
-<meta property="og:title" content="Tịnh Tâm · Chánh Điện Online">
+<meta property="og:title" content="Vía Thần Tài Online">
 <meta property="og:image" content="/assets/hall.jpg">
-<title>Tịnh Tâm · Chánh Điện Online</title>
+<title>Vía Thần Tài Online</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
 <style>
 /* Layout: one 9:16 stage (the painted hall) letterboxed in the viewport; sprites drawn on a canvas over it; HUD in the stage's corners. Dark by design (night temple). */
 :root{
-  --bg:#0c0705; --fg:#f1e3c8; --muted:#b59a76; --gold:#d9a441; --red:#8a2a1e;
-  --panel:rgba(26,14,9,.84); --line:rgba(217,164,65,.38);
+  --bg:#160904; --fg:#fff0cf; --muted:#d5ad72; --gold:#f4c542; --red:#a51f16;
+  --panel:rgba(43,15,7,.88); --line:rgba(244,197,66,.48);
   --display:"Noto Serif",Georgia,"Times New Roman",serif;
   --body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
@@ -78,7 +78,7 @@ input::placeholder{color:#7d6a52}
 <div id="wrap"><div id="stage">
   <canvas id="c"></canvas>
   <div id="top" class="hud">
-    <span class="chip" id="me" hidden><b id="meName"></b><span class="hint">đang tụng kinh</span></span>
+    <span class="chip" id="me" hidden><b id="meName"></b><span class="hint">đang cầu tài lộc</span></span>
     <span class="chip"><span class="n" id="count">0</span><span>phật tử</span></span>
   </div>
   <div id="board" hidden><h3>Tấm lòng thành</h3><ol id="boardList"></ol></div>
@@ -99,7 +99,7 @@ input::placeholder{color:#7d6a52}
   <div id="toast" role="status"></div>
   <div id="gate">
     <form id="gateForm">
-      <h1>Chánh Điện Online</h1>
+      <h1>Vía Thần Tài Online</h1>
       <p>Nhập pháp danh, chọn y phục rồi vào an tọa. Đây là bản thử để kiểm tra giao diện 2.5D: nút quà ở dưới mô phỏng donation TikTok.</p>
       <label for="dharma">Pháp danh</label>
       <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Diệu Hạnh, Minh Tâm…" required>
@@ -256,7 +256,7 @@ function renderBoard(){
 renderBoard();
 
 /* ---- donation: what happens when someone gives ---- */
-const SUTRA = ['Nam mô A Di Đà Phật','Nam mô Bổn Sư Thích Ca Mâu Ni Phật','Nam mô Đại Bi Quán Thế Âm Bồ Tát','Nguyện cầu bình an cho gia đình','Cầu cho cha mẹ được khỏe mạnh','Nguyện đem công đức này hướng về khắp tất cả'];
+const SUTRA = ['Cung chúc phát tài · Vạn sự hanh thông','Nam mô Bổn Sư Thích Ca Mâu Ni Phật','Nam mô Đại Bi Quán Thế Âm Bồ Tát','Nguyện cầu bình an cho gia đình','Cầu cho cha mẹ được khỏe mạnh','Nguyện đem điểm tài lộc này hướng về khắp tất cả'];
 function donate(v, coins, kind, text){
   v.coins += coins; v.glow = 1; v.bow = 1;
   const big = coins >= 99;
@@ -343,7 +343,7 @@ function tick(now){
       }
     } else if (v.state==='sitting'){
       v.sitT += dt; v.frame = 4 + Math.min(3, Math.floor(v.sitT/.22));        // 4 frames ≈ 0.9 s to sit down
-      if (v.sitT > .9){ v.state='sit'; v.frame=7; if (v.isMe) showToast('Đã an tọa. Nam mô A Di Đà Phật.'); }
+      if (v.sitT > .9){ v.state='sit'; v.frame=7; if (v.isMe) showToast('Đã an tọa. Cung chúc phát tài · Vạn sự hanh thông.'); }
     }
     v.fade = Math.min(1, v.fade + dt*2);
     const sc = v.state==='walk' ? (.22+.33*((v.y-FLOOR.yTop)/(FLOOR.yBot-FLOOR.yTop))) : v.seat.scale;
