@@ -26,7 +26,7 @@ const settings = {
   voice: 'vi-VN-NamMinhNeural',      // or vi-VN-HoaiMyNeural
   pitch: -18,                        // Hz
   rate: -20,                         // %
-  music: true, mo: true, moBpm: 52,
+  music: true, mo: false, moBpm: 52,
   autoChant: true, chantEveryMin: 3,
   seatMode: 'auto',                  // auto | 24 | 36 | 64 | 100
   joinOnEnter: false,                // also seat viewers who only enter the room
@@ -93,7 +93,7 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   v.coins += coins;
   const prayer = (v.lastText && Date.now() - v.lastTextAt < 90_000 && v.lastText.length > 6) ? v.lastText : pickPrayer();
   const tier = coins >= 99 ? 3 : coins >= 10 ? 2 : 1;
-  const line = `Cung chúc phát tài, vạn sự hanh thông. Phật tử ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
+  const line = `Cung chúc phát tài, vạn sự hanh thông. Quý khách ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
   broadcast({ t:'gift', id, name: v.name, giftName, count, coins, total: v.coins, tier, prayer });
   if (settings.gifts.readAll || coins >= settings.gifts.minDiamonds) say(line, { tag:'gift', id });
 }
@@ -182,10 +182,10 @@ function fillDemo(n){
   const have = [...viewers.values()].filter(v => v.demo).length;
   for (let i = have; i < n && viewers.size < 100; i++){
     const name = DEMO_NAMES[i % DEMO_NAMES.length] + (i >= DEMO_NAMES.length ? ' ' + (Math.floor(i / DEMO_NAMES.length) + 1) : '');
-    seat('demo_' + i, name, { demo: true, skin: ['man','woman','woman','man','granny','monk','nun','child'][i % 8] });
+    seat('demo_' + i, name, { demo: true, skin: ['man','woman','granny'][i % 3] });
   }
 }
-function clearSeats(){ viewers.clear(); broadcast(snapshot()); addLog('Đã làm trống bồ đoàn'); }
+function clearSeats(){ viewers.clear(); broadcast(snapshot()); addLog('Đã làm trống chỗ ngồi'); }
 
 /* ------------------------------------------------------------- control */
 function onControl(m){
@@ -221,7 +221,7 @@ function applySettings(o){ for (const [k, fn] of Object.entries(SETTING_RULES)) 
 /* ----------------------------------------------------------------- bots */
 let botTimer = null;
 const BOT_LINES = ['Cung chúc phát tài, vạn sự hanh thông', 'Chúc phát tài, phát lộc', 'Cầu cho gia đình bình an', 'Cầu mong mọi điều tốt lành', 'nữ', 'nam', 'bà',
-  'Kính chúc cha mẹ mạnh khỏe, an khang', 'Mô Phật, an lạc quá', 'Chúc mọi người một ngày bình an', 'sư', 'Cầu công việc hanh thông'];
+  'Kính chúc cha mẹ mạnh khỏe, an khang', 'Thần Tài gõ cửa, may mắn cả năm', 'Chúc mọi người một ngày bình an', 'sư', 'Cầu công việc hanh thông'];
 function setBots(on, n, pace){
   clearInterval(botTimer); botTimer = null;
   if (on){
@@ -234,7 +234,7 @@ function setBots(on, n, pace){
       if (r < .62) onChat(id, v.name, BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)]);
       else if (r < .9) broadcast({ t:'like', id, n: 1 + Math.floor(Math.random() * 4) });
       else if (r < .985) onGift(id, v.name, 'Hoa hồng', 1 + Math.floor(Math.random() * 3), 1);
-      else onGift(id, v.name, 'Đèn hoa sen', 1, 99);
+      else onGift(id, v.name, 'Thỏi vàng', 1, 99);
     }, every);
     addLog(`🤖 Bật ${n} bot, nhịp ${pace}`);
   } else {

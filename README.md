@@ -76,3 +76,7 @@ Xin cảm ơn và chúc bạn thân tâm an lạc. Cung chúc phát tài, vạn 
 ## Giấy phép
 
 MIT, xem `LICENSE`.
+
+### Giao diện Vía Thần Tài
+
+Cảnh điện Thần Tài đỏ–vàng và các biểu tượng đồng vàng, thỏi vàng, túi lộc được vẽ bằng SVG trong `assets/`. Cả web tĩnh và overlay dùng chung bộ ảnh này. Quà trên web là mô phỏng, không có thanh toán. Các ảnh gốc được giữ để tương thích với nhân vật hiện có.

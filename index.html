@@ -6,7 +6,7 @@
 <meta name="description" content="Vía Thần Tài Online: gửi lời cầu chúc bình an, may mắn và tài lộc.">
 <meta name="theme-color" content="#0c0705">
 <meta property="og:title" content="Vía Thần Tài Online">
-<meta property="og:image" content="/assets/hall.jpg">
+<meta property="og:image" content="/assets/than-tai-hall.svg">
 <title>Vía Thần Tài Online</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
 <style>
@@ -42,6 +42,7 @@ button{font:inherit;cursor:pointer}
 .btn.gift small{color:var(--muted);font-size:10px;letter-spacing:.04em}
 .btn.gift b{font-family:var(--display);color:var(--gold);font-size:13px}
 #gifts{display:flex;gap:6px}
+
 /* merit board */
 #board{position:absolute;right:10px;top:52px;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:150px;font-size:12px;backdrop-filter:blur(6px)}
 #board h3{margin:0 0 4px;font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:600}
@@ -70,25 +71,42 @@ input::placeholder{color:#7d6a52}
 #toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 15px;font-family:var(--display);color:var(--gold);font-size:14px;opacity:0;transition:opacity .4s;pointer-events:none;max-width:88%;text-align:center}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){#toast,.msg{transition:none;animation:none}}
+.scene-title{position:absolute;top:8%;left:8%;right:8%;text-align:center;color:#ffe5a0;font:600 clamp(18px,4vh,30px) var(--display);letter-spacing:.08em;pointer-events:none;text-shadow:0 2px 12px #390b12}
+.scene-title span{display:block;font:10px var(--body);letter-spacing:.08em;margin-top:9px}
+#gate{background:linear-gradient(0deg,rgba(31,5,13,.95),rgba(51,9,17,.12));align-items:end;padding:18px 16px 28px}
+#gate form{background:linear-gradient(145deg,rgba(93,20,31,.97),rgba(42,9,19,.98));border-radius:22px;border-color:#be8a41;gap:12px;padding:22px;box-shadow:0 16px 70px #20050c}
+.eyebrow{font-size:9px;letter-spacing:.12em;color:#e9bf75;text-align:center}
+.gate-emblem{height:64px;width:80px;align-self:center;margin:-4px 0 -12px}
+#gate h1{text-align:center;font-size:29px;line-height:1.3;color:#ffe4a0}
+#gate h1 em{font-size:14px;font-weight:400;font-style:normal;color:#e8bb7b}
+#gate p{text-align:center;font-size:12px}
+#gate .primary{background:linear-gradient(120deg,#f7d984,#db9e38);color:#4c1720;border:1px solid #ffe5a0;width:100%;font-weight:600;box-shadow:0 5px 20px #21081066}
+#gate input{background:#260b15;border-color:#956537}
+#gate .row{justify-content:center}
+#gate .seg button[aria-pressed="true"]{background:#a82b3b;border-color:#f4ce7a}
+#bottom{gap:8px}#gifts{width:100%;justify-content:space-between}.btn.gift{flex:1;min-width:0;padding:8px 6px}.btn.gift small{font-size:9px}.btn.gift b{font-size:11px}
+@media(max-height:700px){#gate{padding-bottom:12px}#gate form{padding:15px;gap:8px}.gate-emblem{height:40px}#gate h1{font-size:24px}.scene-title{top:7%}}
+
+#board{top:53%;min-width:130px;font-size:10px}#board h3{font-size:10px}#feed{bottom:145px}#gate .gate-emblem{height:92px;width:100px;margin:-4px 0 -6px}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}body{margin:0;font-size:14px}[hidden]{display:none!important}</style>
 </head>
 <body>
 
 <div id="wrap"><div id="stage">
-  <canvas id="c"></canvas>
+  <canvas id="c" aria-label="Điện Thần Tài với khách đến cầu lộc"></canvas><div class="scene-title" aria-hidden="true">VÍA THẦN TÀI<span>Cung chúc phát tài · Vạn sự hanh thông</span></div>
   <div id="top" class="hud">
     <span class="chip" id="me" hidden><b id="meName"></b><span class="hint">đang cầu tài lộc</span></span>
-    <span class="chip"><span class="n" id="count">0</span><span>phật tử</span></span>
+    <span class="chip"><span class="n" id="count">0</span><span>khách cầu lộc</span></span>
   </div>
-  <div id="board" hidden><h3>Tấm lòng thành</h3><ol id="boardList"></ol></div>
+  <div id="board" hidden><h3>Lộc vàng trao tay</h3><ol id="boardList"></ol></div>
   <div id="feed" aria-live="polite"></div>
   <div id="bottom" class="hud">
     <span id="gifts" hidden>
-      <button class="btn gift" data-coins="1" data-fx="petal"><b>Cánh sen</b><small>1 coin</small></button>
-      <button class="btn gift" data-coins="5" data-fx="incense"><b>Dâng hương</b><small>5 coins</small></button>
-      <button class="btn gift" data-coins="20" data-fx="lotus"><b>Hoa sen</b><small>20 coins</small></button>
-      <button class="btn gift" data-coins="99" data-fx="bell"><b>Thỉnh chuông</b><small>99 coins</small></button>
+      <button class="btn gift" data-coins="1" data-fx="petal"><b>Đồng vàng</b><small>1 điểm lộc</small></button>
+      <button class="btn gift" data-coins="5" data-fx="incense"><b>Dâng hương</b><small>5 điểm lộc</small></button>
+      <button class="btn gift" data-coins="20" data-fx="lotus"><b>Thỏi vàng</b><small>20 điểm lộc</small></button>
+      <button class="btn gift" data-coins="99" data-fx="bell"><b>Túi tài lộc</b><small>99 điểm lộc</small></button>
     </span>
     <span class="row">
       <button class="btn" id="nextTrack" hidden title="Bài kế tiếp"><span id="nowPlaying">♪</span> ›</button>
@@ -99,19 +117,19 @@ input::placeholder{color:#7d6a52}
   <div id="toast" role="status"></div>
   <div id="gate">
     <form id="gateForm">
-      <h1>Vía Thần Tài Online</h1>
-      <p>Nhập Tên hiển thị, chọn y phục rồi vào an tọa. Đây là bản thử để kiểm tra giao diện 2.5D: nút quà ở dưới mô phỏng donation TikTok.</p>
-      <label for="dharma">Pháp danh</label>
-      <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Diệu Hạnh, Minh Tâm…" required>
+      <span class="eyebrow">MÙNG 10 THÁNG GIÊNG · ĐÓN LỘC ĐẦU NĂM</span><img class="gate-emblem" src="assets/than-tai-emblem.svg" alt="Thần Tài ôm thỏi vàng"><h1>Vía Thần Tài<br><em>Rước lộc, đón an khang</em></h1>
+      <p>Ghé điện Thần Tài, trao lời chúc tốt lành. Cùng đón tài lộc, cầu một năm làm ăn hanh thông và gia đạo bình an.</p>
+      <label for="dharma">Tên hiển thị</label>
+      <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Minh Anh, Ngọc Hà…" required>
       <label>Y phục</label>
       <div class="seg" id="skin">
-        <button type="button" data-skin="man" aria-pressed="true">Nam áo lam</button>
-        <button type="button" data-skin="woman" aria-pressed="false">Nữ áo lam</button>
-        <button type="button" data-skin="granny" aria-pressed="false">Áo nâu</button>
+        <button type="button" data-skin="man" aria-pressed="true">Khách nam</button>
+        <button type="button" data-skin="woman" aria-pressed="false">Khách nữ</button>
+        <button type="button" data-skin="granny" aria-pressed="false">Khách lớn tuổi</button>
       </div>
       <div class="row">
-        <button type="submit" class="btn primary">Tham gia Vía Thần Tài</button>
-        <span class="hint">Gửi lời chúc tài lộc và may mắn.</span>
+        <button type="submit" class="btn primary">Vào điện đón lộc ✦</button>
+        <span class="hint">Quà tặng mô phỏng · không thanh toán tiền thật.</span>
       </div>
       <div class="row">
         <span class="hint">Thực hiện bởi Kent Juno · mã nguồn mở</span>
@@ -132,10 +150,10 @@ const SW = 1080, SH = 1920;
 const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const A = {};   // loaded images
 const ASSETS = {
-  hall:'assets/hall.jpg',
+  hall:'assets/than-tai-hall.svg',
   monk:'assets/c_monk.png', nun:'assets/c_nun.png', granny:'assets/c_granny.png', man:'assets/c_man.png', woman:'assets/c_woman.png', child:'assets/c_child.png',
   anim_man:'assets/anim_man.png', anim_woman:'assets/anim_woman.png', anim_granny:'assets/anim_granny.png',
-  lotus:'assets/fx_lotus.png', halo:'assets/fx_halo.png', bell:'assets/fx_bell.png', incense:'assets/fx_incense.png', petal:'assets/fx_petal.png', mo:'assets/fx_mo.png', banner:'assets/fx_banner.png', scroll:'assets/fx_scroll.png',
+  lotus:'assets/loc-vang.svg', halo:'assets/fx_halo.png', bell:'assets/tui-loc.svg', incense:'assets/fx_incense.png', petal:'assets/dong-tien.svg', mo:'assets/fx_mo.png', banner:'assets/fx_banner.png', scroll:'assets/fx_scroll.png',
 };
 let loaded = 0; const total = Object.keys(ASSETS).length;
 for (const [k,src] of Object.entries(ASSETS)) { const im = new Image(); im.onload = ()=>{ loaded++; }; im.onerror = ()=>{ loaded++; console.warn('missing', src); }; im.src = src; A[k] = im; }
@@ -167,7 +185,7 @@ const DOOR = { x: SW/2, y: SH + 120 };         // walk in from below the frame
 
 /* ---- visitors ---- */
 const visitors = [], fx = [], floaters = [];
-const SKINS = ['man','woman','granny','man','woman','nun','monk','child'];
+const SKINS = ['man','woman','granny'];
 function freeSeat(){ return seats.find(s=>!s.taken) || null; }
 function addVisitor(name, skin, instant, isMe){
   const seat = freeSeat(); if(!seat) return null;
@@ -185,19 +203,17 @@ DEMO.forEach((n,i)=>{ const v = addVisitor(n, SKINS[i%SKINS.length], true); v.co
 /* ---- audio: Web Audio drone + bell + mõ, no files ---- */
 let AC=null, master=null, muted=false, mokTimer=null, bellTimer=null, me=null, haloPulse=0;
 /* Music: Gemini-made tracks played in order, crossfaded, ducked under TTS. Bell + mõ stay synthesized. */
-const TRACKS = [
-  { src:'assets/music/music1.mp3', name:'Trăng trên rừng trúc' },
-  { src:'assets/music/music2.mp3', name:'Hơi thở ban mai' },
-];
+const TRACKS = []; // Optional licensed background tracks can be added here.
 let musicGain=null, musicEls=[], trackIdx=0, duck=1;
 function audioStart(){
   if (AC) return;
   AC = new (window.AudioContext||window.webkitAudioContext)(); master = AC.createGain(); master.gain.value=.8; master.connect(AC.destination);
   musicGain = AC.createGain(); musicGain.gain.value=.55; musicGain.connect(master);
   playTrack(Math.floor(Math.random()*TRACKS.length));
-  bell(); bellTimer=setInterval(bell, 45000); mokTimer=setInterval(mok, 1150);
+  bell(); bellTimer=setInterval(bell, 45000); // Gentle chime ambience; no repetitive wooden-fish beat.
 }
 function playTrack(i){
+  if (!TRACKS.length) return;
   trackIdx = (i+TRACKS.length)%TRACKS.length; const tr = TRACKS[trackIdx];
   const el = new Audio(tr.src); el.preload='auto'; el.crossOrigin='anonymous';
   const src = AC.createMediaElementSource(el), g = AC.createGain(); g.gain.value=0; src.connect(g); g.connect(musicGain);
@@ -264,7 +280,7 @@ function donate(v, coins, kind, text){
   // petals drift up from the seat; big gifts also shower the Buddha
   for (let i=0;i<(big?18:coins>=20?8:3);i++) floaters.push({ x:v.seat.x+(Math.random()-.5)*160*v.seat.scale, y:v.seat.y-60, vx:(Math.random()-.5)*30, vy:-(60+Math.random()*80), t:0, life:2.5+Math.random(), s:.18+Math.random()*.15 });
   if (big){ bell(true); for (let i=0;i<24;i++) floaters.push({ x:SW/2+(Math.random()-.5)*500, y:300+Math.random()*300, vx:(Math.random()-.5)*40, vy:20+Math.random()*40, t:0, life:4, s:.2+Math.random()*.15, down:true }); }
-  const label = {petal:'Cánh sen',incense:'Dâng hương',lotus:'Hoa sen',bell:'Thỉnh chuông'}[kind];
+  const label = {petal:'Đồng vàng',incense:'Dâng hương',lotus:'Thỏi vàng',bell:'Túi tài lộc'}[kind];
   say(v.name, ` đã gửi ${label} ×${coins}` + (text?` · "${text}"`:''), true);
   showToast(`${v.name} dâng ${label}` + (text?` — ${text}`:''));
   ttsSpeak(`${v.name} dâng ${label}. ${text||''}`);
@@ -284,7 +300,7 @@ form.addEventListener('submit', e=>{
   audioStart();
   me = addVisitor(name, mySkin, false, true);
   gate.hidden=true; document.getElementById('me').hidden=false; document.getElementById('meName').textContent=name;
-  for (const id of ['mute','leave','gifts','nextTrack']) document.getElementById(id).hidden=false;
+  for (const id of ['mute','leave','gifts']) document.getElementById(id).hidden=false;
   say(name,' đã tham gia'); showToast('Hoan nghênh '+name+' tham gia Vía Thần Tài'); ttsSpeak('Hoan nghênh '+name+' tham gia Vía Thần Tài');
 });
 document.getElementById('gifts').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||!me) return; donate(me, +b.dataset.coins, b.dataset.fx, SUTRA[Math.floor(Math.random()*SUTRA.length)]); });
