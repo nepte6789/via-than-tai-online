@@ -99,3 +99,11 @@ Bảng điều khiển có nút **Xin quẻ tài lộc** để thử tương tá
 Toàn bộ tài nguyên đang hiển thị chuyển sang bộ ảnh 3D mới trong `assets/artwork/`: `hall-imperial.webp` (đại điện, Thần Tài, cột rồng, cây lộc và sân), `characters-festival.webp` (sáu nhân vật áo dài lễ hội), `props-festival.webp` (vàng, đồng tiền, túi lộc, cây tài lộc, hoa đào, lư hương). Ảnh nhân vật và vật phẩm có alpha trong suốt. `assets/festival-art.js` lấy đúng ô từ mỗi atlas khi vẽ, không tải các hình SVG/PNG cũ. WebP giữ gói ảnh khoảng 1,5 MB; bản gốc tạo ảnh được giữ trong môi trường làm việc.
 
 Bảng thông tin, thông báo quà, quẻ và bảng điều khiển dùng nền đỏ son/đỏ rượu, đường viền vàng trong `assets/prosperity-theme.css`. Bộ font Playfair Display 700 và Nunito Sans 400/700 được lưu cục bộ dạng WOFF, đã kiểm tra ký tự tiếng Việt; kèm giấy phép SIL Open Font License trong `assets/fonts/`. Không cần gọi Google Fonts để hiển thị.
+
+### Lỗi EulerStream yêu cầu Business plan
+
+Nếu gặp `[fetchWebcastSignatureFromEulerRoute] ... Business plan`, cập nhật mã mới rồi khởi động lại server. Cấu hình `live/tiktok-config.mjs` tắt `enableExtendedGiftInfo`: danh mục quà mở rộng là tùy chọn và gọi API ký URL giới hạn Business. Sự kiện quà trực tiếp vẫn được đọc từ `giftDetails` (tên, loại, số kim cương) để xướng tên và tính điểm.
+
+Việc này không loại bỏ bước ký WebSocket bắt buộc của thư viện. Nếu nhà cung cấp tiếp tục báo giới hạn/quyền truy cập khi ký kết nối, cần kiểm tra điều kiện dịch vụ EulerStream; bản sửa không cam kết kết nối miễn phí luôn hoạt động. Không cần cung cấp mật khẩu hay cookie TikTok.
+
+Kiểm tra lỗi này bằng `cd live && node --test test/tiktok-config.test.mjs`.
