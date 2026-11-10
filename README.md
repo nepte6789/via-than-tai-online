@@ -93,3 +93,9 @@ Cảnh điện Thần Tài đỏ–vàng và các biểu tượng đồng vàng,
 Overlay, web tĩnh và bảng điều khiển dùng chung bảng màu ngọc bích – đỏ son – vàng ấm trong `assets/prosperity-theme.css`. Sáu nhân vật SVG mới nằm trong `assets/characters/`, không dùng y phục tu hành. Đồng hồ trên overlay là giờ hiện tại ở `Asia/Ho_Chi_Minh` (UTC+7), không phải thời lượng live.
 
 Bảng điều khiển có nút **Xin quẻ tài lộc** để thử tương tác; bản web tĩnh có nút cùng tên sau khi vào sảnh. Dữ liệu tám quẻ dùng chung trong `assets/fortunes.js`. Bảng điểm phiên và chức năng đổi bot vẫn hoạt động như trước.
+
+### Bộ mỹ thuật đại điện đỏ–vàng
+
+Toàn bộ tài nguyên đang hiển thị chuyển sang bộ ảnh 3D mới trong `assets/artwork/`: `hall-imperial.webp` (đại điện, Thần Tài, cột rồng, cây lộc và sân), `characters-festival.webp` (sáu nhân vật áo dài lễ hội), `props-festival.webp` (vàng, đồng tiền, túi lộc, cây tài lộc, hoa đào, lư hương). Ảnh nhân vật và vật phẩm có alpha trong suốt. `assets/festival-art.js` lấy đúng ô từ mỗi atlas khi vẽ, không tải các hình SVG/PNG cũ. WebP giữ gói ảnh khoảng 1,5 MB; bản gốc tạo ảnh được giữ trong môi trường làm việc.
+
+Bảng thông tin, thông báo quà, quẻ và bảng điều khiển dùng nền đỏ son/đỏ rượu, đường viền vàng trong `assets/prosperity-theme.css`. Bộ font Playfair Display 700 và Nunito Sans 400/700 được lưu cục bộ dạng WOFF, đã kiểm tra ký tự tiếng Việt; kèm giấy phép SIL Open Font License trong `assets/fonts/`. Không cần gọi Google Fonts để hiển thị.

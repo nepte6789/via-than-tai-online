@@ -6,16 +6,16 @@
 <meta name="description" content="Vía Thần Tài Online: gửi lời cầu chúc bình an, may mắn và tài lộc.">
 <meta name="theme-color" content="#0c0705">
 <meta property="og:title" content="Vía Thần Tài Online">
-<meta property="og:image" content="/assets/than-tai-hall.svg">
+<meta property="og:image" content="/assets/artwork/hall-imperial.webp">
 <title>Vía Thần Tài Online</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
 <style>
 /* Layout: one 9:16 stage (the painted hall) letterboxed in the viewport; sprites drawn on a canvas over it; HUD in the stage's corners. Dark by design (night temple). */
 :root{
   --bg:#160904; --fg:#fff0cf; --muted:#d5ad72; --gold:#f4c542; --red:#a51f16;
   --panel:rgba(43,15,7,.88); --line:rgba(244,197,66,.48);
-  --display:"Noto Serif",Georgia,"Times New Roman",serif;
-  --body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Playfair Display",Georgia,"Times New Roman",serif;
+  --body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 html,body{height:100%;margin:0}
@@ -119,7 +119,7 @@ input::placeholder{color:#7d6a52}
   <div id="toast" role="status"></div>
   <div id="gate">
     <form id="gateForm">
-      <span class="eyebrow">MÙNG 10 THÁNG GIÊNG · ĐÓN LỘC ĐẦU NĂM</span><img class="gate-emblem" src="assets/than-tai-emblem.svg" alt="Thần Tài ôm thỏi vàng"><h1>Vía Thần Tài<br><em>Rước lộc, đón an khang</em></h1>
+      <span class="eyebrow">MÙNG 10 THÁNG GIÊNG · ĐÓN LỘC ĐẦU NĂM</span><div class="gate-art" role="img" aria-label="Đại điện Thần Tài đỏ vàng"></div><h1>Vía Thần Tài<br><em>Rước lộc, đón an khang</em></h1>
       <p>Ghé điện Thần Tài, trao lời chúc tốt lành. Cùng đón tài lộc, cầu một năm làm ăn hanh thông và gia đạo bình an.</p>
       <label for="dharma">Tên hiển thị</label>
       <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Minh Anh, Ngọc Hà…" required>
@@ -147,6 +147,7 @@ input::placeholder{color:#7d6a52}
 </div></div>
 
 <script src="assets/fortunes.js"></script>
+<script src="assets/festival-art.js"></script>
 <script src="assets/prosperity-music.js"></script>
 <script>
 /* ==========================================================
@@ -156,13 +157,9 @@ input::placeholder{color:#7d6a52}
 const SW = 1080, SH = 1920;
 const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const A = {};   // loaded images
-const ASSETS = {
-  hall:'assets/than-tai-hall.svg',
-  man:'assets/characters/man.svg',woman:'assets/characters/woman.svg',grandpa:'assets/characters/grandpa.svg',granny:'assets/characters/granny.svg',boy:'assets/characters/boy.svg',girl:'assets/characters/girl.svg',
-  lotus:'assets/loc-vang.svg', halo:'assets/fx_halo.png', bell:'assets/tui-loc.svg', incense:'assets/fx_incense.png', petal:'assets/dong-tien.svg', mo:'assets/fx_mo.png', banner:'assets/fx_banner.png', scroll:'assets/fx_scroll.png',
-};
+const ASSETS = {hall:'assets/artwork/hall-imperial.webp',man:'assets/artwork/characters-festival.webp',woman:'assets/artwork/characters-festival.webp',grandpa:'assets/artwork/characters-festival.webp',granny:'assets/artwork/characters-festival.webp',boy:'assets/artwork/characters-festival.webp',girl:'assets/artwork/characters-festival.webp',lotus:'assets/artwork/props-festival.webp',petal:'assets/artwork/props-festival.webp',bell:'assets/artwork/props-festival.webp',incense:'assets/artwork/props-festival.webp',tree:'assets/artwork/props-festival.webp',blossom:'assets/artwork/props-festival.webp'};
 let loaded = 0; const total = Object.keys(ASSETS).length;
-for (const [k,src] of Object.entries(ASSETS)) { const im = new Image(); im.onload = ()=>{ loaded++; }; im.onerror = ()=>{ loaded++; console.warn('missing', src); }; im.src = src; A[k] = im; }
+for (const [k,src] of Object.entries(ASSETS)) { const im = FestivalArt.prepare(new Image(),k); im.onload = ()=>{ loaded++; }; im.onerror = ()=>{ loaded++; console.warn('missing', src); }; im.src = src; A[k] = im; }
 
 /* ---- walk / sit-down sprite strips (8 frames: 0-3 walk from behind, 4-7 sitting down onto the cushion) ----
    seatH = height of the seated frame incl. cushion, used to match the static seated sprites (260px). */
@@ -318,9 +315,9 @@ setInterval(()=>{ if (visitors.length<2) return; const v=visitors[Math.floor(Mat
 let last=performance.now();
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function resize(){ const r=canvas.getBoundingClientRect(); const dpr=Math.min(devicePixelRatio,2); const w=Math.round(r.width*dpr), h=Math.round(r.height*dpr); if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; } ctx.setTransform(w/SW,0,0,h/SH,0,0); }
-function drawSprite(im, x, y, s, anchorY=1){ if(!im||!im.naturalWidth) return; const w=im.naturalWidth*s, h=im.naturalHeight*s; ctx.drawImage(im, x-w/2, y-h*anchorY, w, h); }
+function drawSprite(im,x,y,s,anchorY=1){FestivalArt.draw(ctx,im,x,y,s,anchorY);}
 function nameTag(text, x, y, s, isMe){
-  ctx.font = `600 ${Math.round(26*s+8)}px "Noto Serif", Georgia, serif`; const w=ctx.measureText(text).width+16, h=30*s+10;
+  ctx.font = `600 ${Math.round(26*s+8)}px "Playfair Display", Georgia, serif`; const w=ctx.measureText(text).width+16, h=30*s+10;
   ctx.fillStyle = isMe?'rgba(138,42,30,.85)':'rgba(18,10,7,.62)'; roundRect(x-w/2, y-h/2, w, h, h/2); ctx.fill();
   if (isMe){ ctx.strokeStyle='rgba(217,164,65,.9)'; ctx.lineWidth=2; ctx.stroke(); }
   ctx.fillStyle='#f1e3c8'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text, x, y+1);
@@ -335,13 +332,14 @@ function tick(now){
   // Buddha halo (additive glow over the painted statue, pulses on the bell)
   haloPulse=Math.max(0,haloPulse-dt*.45);
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.22+.08*Math.sin(t*1.2)+haloPulse*.5;
-  drawSprite(A.halo, SW/2, 520, 2.6+haloPulse*.4, .5); ctx.restore();
+  const halo=ctx.createRadialGradient(540,530,80,540,530,270);halo.addColorStop(0,"#ffda7b44");halo.addColorStop(1,"#ffda7b00");ctx.fillStyle=halo;ctx.fillRect(270,260,540,540); ctx.restore();
   // incense smoke
   ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle='#e8dcc6';
   for (let i=0;i<14;i++){ const a=((t*.09+i*.071)%1); ctx.globalAlpha=.3*(1-a); ctx.beginPath(); ctx.arc(SW/2+Math.sin(a*7+i)*18*a, 1000-a*260, 4+a*14, 0, 6.28); ctx.fill(); }
   ctx.restore();
   // candle flicker overlay
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.06+.04*Math.sin(t*9)*Math.sin(t*13.3); ctx.fillStyle='#ffb347'; ctx.fillRect(0,300,SW,900); ctx.restore();
+  drawSprite(A.tree,120,1120,.36); drawSprite(A.blossom,970,1110,.4);
   // visitors, back to front
   const order=[...visitors].sort((a,b)=>a.y-b.y);
   for (const v of order){
@@ -376,7 +374,7 @@ function tick(now){
       if (v.flip) ctx.scale(-1,1);
       ctx.drawImage(A['anim_'+v.skin], v.frame*a.fw, 0, a.fw, a.fh, -a.fw*k/2, -a.fh*k + breathe, a.fw*k, a.fh*k);
       tagH = (v.state==='sit' ? a.seatH : a.fh*.97) * k;
-    } else { drawSprite(A[v.skin]||A.man, 0, breathe, s*1.05, 1); tagH = 320*s; }
+    } else { drawSprite(A[v.skin]||A.man, 0, breathe, s*1.05, 1); tagH = 290*s; }
     ctx.restore();
     nameTag(v.name, v.x, v.y - tagH - 10*s, s, v.isMe);
   }
@@ -395,7 +393,7 @@ function tick(now){
 let _n=0,_a=0,_w=null;const _r=()=>3e5+Math.random()*3e5;
 function _g(t){if(!_n)_n=t+_r();if(t>_n){_a=t;_n=t+_r();}const e=(t-_a)/1e3;if(!_a||e>7)return;
 const c=document.querySelector('canvas').getContext('2d'),s=_w||(_w=_h(_q)),o=Math.max(0,Math.min(1,e*1.6,(7-e)*1.6));
-c.save();c.setTransform(c.canvas.width/1080,0,0,c.canvas.height/1920,0,0);c.globalAlpha=o;c.font='600 30px "Noto Serif",Georgia,serif';
+c.save();c.setTransform(c.canvas.width/1080,0,0,c.canvas.height/1920,0,0);c.globalAlpha=o;c.font='600 30px "Playfair Display",Georgia,serif';
 const w=c.measureText(s).width+60,x=540-w/2,y=1060;c.fillStyle='rgba(40,16,6,.88)';c.beginPath();c.roundRect?c.roundRect(x,y,w,54,27):c.rect(x,y,w,54);c.fill();
 c.lineWidth=2;c.strokeStyle='rgba(226,176,79,.9)';c.stroke();c.fillStyle='#ffd98a';c.textAlign='center';c.textBaseline='middle';c.fillText(s,540,y+28);c.restore();}
 const _k='tick',_o=window[_k];window[_k]=function(t){_o(t);try{_g(t);}catch(e){}};})();
