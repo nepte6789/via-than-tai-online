@@ -61,23 +61,27 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
 #conn{position:absolute;z-index:4;right:16px;bottom:12px;font-size:20px;color:var(--muted);opacity:.6}
 @media (prefers-reduced-motion:reduce){#chant,#gift{transition:none}}
 </style>
+<link rel="stylesheet" href="/assets/prosperity-theme.css">
 </head>
 <body>
 <div id="fit"><div id="stage">
-  <canvas id="c" width="1080" height="1920"></canvas>
+  <canvas id="c" width="1080" height="1920" aria-label="Sảnh Thần Tài và khách trong trang phục lễ hội"></canvas>
   <div id="plaque" class="ui"><div id="title">Vía Thần Tài Online</div><div id="subtitle">Cung chúc phát tài · Vạn sự hanh thông</div></div>
   <div id="pills" class="ui">
     <div class="pill"><span class="dot"></span><span id="count">0/24</span><small>đang<br>cầu lộc</small></div>
-    <div class="pill">⏱ <span id="timer">00:00:00</span></div>
+    <div class="pill"><small class="clock-label">GIỜ VIỆT NAM</small><span id="timer" aria-label="Giờ Việt Nam hiện tại">--:--:--</span></div>
   </div>
   <div id="guide" class="card ui">
-    <div>💬 <b>Bình luận bất kỳ</b> để cầu lộc</div>
-    <div>Gõ <b>nam · nữ · bà</b> để đổi hình</div>
-    <div>🎁 Tặng quà được <b>xướng tên chúc lộc</b></div>
+    <span class="card-label">ĐÓN LỘC CÙNG NHAU</span>
+    <div class="guide-step"><i>01</i><span><b>Bình luận bất kỳ</b> để vào sảnh cầu tài lộc</span></div>
+    <div class="guide-step"><i>02</i><span>Bình luận <b>nam - nữ - bà - ông - bé trai - bé gái</b> để đổi hình</span></div>
+    <div class="guide-step"><i>03</i><span>Bình luận <b>xin quẻ</b> để xin quẻ tài lộc</span></div>
+    <div class="guide-step"><i>04</i><span><b>Tặng quà</b> để xướng tên chúc tài lộc</span></div>
   </div>
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
   <div id="chant" class="ui"><h4>✦ LỜI CHÚC TÀI LỘC ✦</h4><p id="chantText"></p></div>
   <div id="gift" class="ui"><div class="who" id="giftWho"></div><div class="what" id="giftWhat"></div><div class="pray" id="giftPray"></div></div>
+  <section id="fortune" role="status" hidden><button id="fortuneClose" aria-label="Đóng quẻ">×</button><small id="fortuneNumber"></small><h2 id="fortuneTitle"></h2><p id="fortuneWho"></p><p id="fortuneVerse"></p><p id="fortuneAdvice"></p><div class="fortune-note">Quẻ vui đầu năm · Lời chúc mang ý nghĩa văn hóa</div></section>
   <button id="unmute">♪ Bấm để bật nhạc tài lộc</button>
   <div id="conn">đang kết nối…</div>
 </div></div>
@@ -91,18 +95,17 @@ addEventListener('resize', fit); fit();
 
 /* ======================= assets ======================= */
 const A = {};
-const IMG = { hall:'/assets/than-tai-hall.svg', monk:'/assets/c_monk.png', nun:'/assets/c_nun.png', granny:'/assets/c_granny.png', man:'/assets/c_man.png',
-  woman:'/assets/c_woman.png', child:'/assets/c_child.png', anim_man:'/assets/anim_man.png', anim_woman:'/assets/anim_woman.png', anim_granny:'/assets/anim_granny.png',
+const IMG = { hall:'/assets/than-tai-hall.svg', man:'/assets/characters/man.svg', woman:'/assets/characters/woman.svg', grandpa:'/assets/characters/grandpa.svg', granny:'/assets/characters/granny.svg', boy:'/assets/characters/boy.svg', girl:'/assets/characters/girl.svg',
   lotus:'/assets/loc-vang.svg', halo:'/assets/fx_halo.png', bell:'/assets/tui-loc.svg', incense:'/assets/fx_incense.png', petal:'/assets/dong-tien.svg' };
 for (const [k,src] of Object.entries(IMG)){ const im=new Image(); im.src=src; A[k]=im; }
-const ANIM = { man:{fw:212,fh:300,seatH:210}, woman:{fw:212,fh:300,seatH:220}, granny:{fw:195,fh:300,seatH:222} };
-const hasAnim = k => ANIM[k] && A['anim_'+k]?.naturalWidth > 0;
+const ANIM = {};
+const hasAnim = () => false;
 const avatars = new Map();
 function avatar(url){ if(!url) return null; let im=avatars.get(url); if(!im){ im=new Image(); im.referrerPolicy='no-referrer'; im.src=url; avatars.set(url,im); } return im.naturalWidth?im:null; }
 
 /* ======================= seats ======================= */
 // Floor trapezoid in the painting: back row just below the altar, front row near the bottom.
-const FLOOR = { yTop: 1215, yBot: 1845, halfTop: 290, halfBot: 430 };
+const FLOOR = { yTop: 1350, yBot: 1845, halfTop: 290, halfBot: 430 };
 const GRID = { 24:[6,4], 36:[6,6], 64:[8,8], 100:[10,10] };
 let cap = 24, seats = [];
 function layout(c){
@@ -134,7 +137,7 @@ function addVisitor(p, instant){
   if (visitors.has(p.id)) { Object.assign(visitors.get(p.id), { name:p.name, skin:p.skin, avatar:p.avatar, coins:p.coins }); return; }
   const v = { ...p, state:'walk', x:540, y:2020, tx:0, ty:0, frame:0, ft:0, sitT:0, flip:false, fade:0, bubble:null, glow:0, bow:0, phase:Math.random()*6.28 };
   visitors.set(p.id, v); order.push(p.id); reseat();
-  if (instant || !hasAnim(v.skin) || !v.seat){ v.state='sit'; v.frame=7; v.x=v.tx=v.seat?.x||540; v.y=v.ty=v.seat?.y||1500; v.fade = instant?1:0; }
+  if (instant || !v.seat){ v.state='sit'; v.frame=7; v.x=v.tx=v.seat?.x||540; v.y=v.ty=v.seat?.y||1500; v.fade = instant?1:0; }
 }
 function removeVisitor(id){ visitors.delete(id); reseat(); }
 
@@ -147,9 +150,12 @@ function renderMerit(){
   if (!top.length){ ol.innerHTML='<li class="empty">Chưa có</li>'; return; }
   top.forEach((v,i)=>{ const li=document.createElement('li'); const a=document.createElement('span'); a.textContent=`${i+1}. ${v.name}`; const b=document.createElement('span'); b.textContent=v.coins; li.append(a,b); ol.append(li); });
 }
-setInterval(()=>{ const s=Math.floor((Date.now()-startedAt)/1000); document.getElementById('timer').textContent=[s/3600,s/60%60,s%60].map(x=>String(Math.floor(x)).padStart(2,'0')).join(':'); },1000);
+const vietnamClock=new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function updateClock(){document.getElementById('timer').textContent=vietnamClock.format(new Date());}
+updateClock();setInterval(updateClock,1000);
 let giftHide=null;
 function showGift(m){
+  document.getElementById("fortune").hidden=true;
   document.getElementById('giftWho').textContent = m.name;
   document.getElementById('giftWhat').textContent = `thành tâm dâng ${m.giftName}${m.count>1?' ×'+m.count:''} · tài lộc ${m.total}`;
   document.getElementById('giftPray').textContent = '“' + m.prayer + '”';
@@ -157,8 +163,19 @@ function showGift(m){
   const el=document.getElementById('gift'); el.classList.add('show'); clearTimeout(giftHide); giftHide=setTimeout(()=>el.classList.remove('show'), m.tier>=3?9000:6500);
 }
 let chantHide=null;
-function showChant(text){ document.getElementById('chantText').textContent=text; const el=document.getElementById('chant'); el.classList.add('show'); clearTimeout(chantHide); chantHide=setTimeout(()=>el.classList.remove('show'), 14000); }
+function showChant(text){ document.getElementById("fortune").hidden=true; document.getElementById('chantText').textContent=text; const el=document.getElementById('chant'); el.classList.add('show'); clearTimeout(chantHide); chantHide=setTimeout(()=>el.classList.remove('show'), 14000); }
 
+let fortuneHide=null;
+function showFortune(m){
+  document.getElementById('fortuneNumber').textContent='QUẺ TÀI LỘC · '+String(m.fortune.number).padStart(2,'0');
+  document.getElementById('fortuneTitle').textContent=m.fortune.title;
+  document.getElementById('fortuneWho').textContent='Gửi '+m.name+' · '+m.fortune.wish;
+  document.getElementById('fortuneVerse').textContent=m.fortune.verse;
+  document.getElementById('fortuneAdvice').textContent=m.fortune.advice;
+  document.getElementById('gift').classList.remove('show');document.getElementById('chant').classList.remove('show');
+  document.getElementById('fortune').hidden=false;clearTimeout(fortuneHide);fortuneHide=setTimeout(()=>document.getElementById('fortune').hidden=true,12000);
+}
+document.getElementById('fortuneClose').onclick=()=>{clearTimeout(fortuneHide);document.getElementById('fortune').hidden=true;};
 /* ======================= audio ======================= */
 let AC=null, master=null, musicGain=null, music=null, settings={ music:true };
 let haloPulse=0;
@@ -217,6 +234,7 @@ function connect(){
       case 'like': { const v=visitors.get(m.id); if(v) hearts(v,m.n); } break;
       case 'tts': queueTTS(m.url); break;
       case 'chant': showChant(m.text); break;
+      case 'fortune': showFortune(m); break;
     }
   };
 }
@@ -279,10 +297,10 @@ function frame(now){
     ctx.save(); ctx.globalAlpha=v.fade; ctx.translate(v.x,v.y); if (bowK) ctx.transform(1,0,0,1-bowK,0,0);
     let topY;
     if (anim){ const a=ANIM[v.skin], k=ws*1.05*260/a.seatH; if (v.flip) ctx.scale(-1,1); ctx.drawImage(A['anim_'+v.skin], v.frame*a.fw,0,a.fw,a.fh, -a.fw*k/2, -a.fh*k+breathe, a.fw*k, a.fh*k); topY=(v.state==='sit'?a.seatH:a.fh*.97)*k; }
-    else { const sk = v.skin==='master'?'monk':v.skin; sprite(A[sk]||A.man,0,breathe,ws*1.05); topY=260*ws; }
+    else { const sk = v.skin; sprite(A[sk]||A.man,0,breathe,ws*1.05); topY=320*ws; }
     ctx.restore();
     const ty=v.y-topY-14*ws/.4;
-    tag(v.name, v.x, ty, ws, v.skin==='master'||v.coins>=99?'gold':'', avatar(v.avatar), v.state==='sit' ? v.seat?.gap : 0);
+    tag(v.name, v.x, ty, ws*.82, v.coins>=99?'gold':'', avatar(v.avatar), v.state==='sit' ? v.seat?.gap : 0);
     if (v.bubble && now<v.bubble.until) bubbles.push([v.bubble.text, v.x, ty-Math.max(18,30*ws/.4), ws]); else v.bubble=null;
   }
   for (const b of bubbles) bubble(...b);

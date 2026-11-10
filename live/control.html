@@ -42,8 +42,9 @@ button.red{background:var(--red);border-color:#b84a33}
 #people td:last-child{text-align:right;color:var(--gold);font-variant-numeric:tabular-nums}
 #log{height:220px;overflow:auto;background:#0b0604;border:1px solid var(--line);border-radius:10px;padding:8px;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
+<link rel="stylesheet" href="/assets/prosperity-theme.css">
 </head>
-<body>
+<body class="control-page">
 <header>
   <h1>Bảng điều khiển · Vía Thần Tài Online</h1>
   <div class="status">
@@ -71,13 +72,13 @@ button.red{background:var(--red);border-color:#b84a33}
     <input id="simName" value="Minh An">
     <label for="simText">Bình luận / lời chúc</label>
     <input id="simText" value="Cầu tài lộc hanh thông, gia đạo bình an">
-    <div class="row"><button id="btnChat">Gửi bình luận</button></div>
+    <div class="row"><button id="btnChat">Gửi bình luận</button><button id="btnFortune">Xin quẻ tài lộc</button></div>
     <div class="row">
       <button data-gift="Hoa hồng" data-dia="1">Hoa hồng · 1</button>
       <button data-gift="Thỏi vàng" data-dia="30">Thỏi vàng · 30</button>
       <button data-gift="Túi tài lộc" data-dia="199">Tài lộc · 199</button>
     </div>
-    <p class="hint">Gõ <b>nam · nữ · bà</b> làm bình luận để đổi hình.</p>
+    <p class="hint">Gõ <b>nam · nữ · bà · ông · bé trai · bé gái</b> làm bình luận để đổi hình; bình luận <b>xin quẻ</b> để xin quẻ tài lộc.</p>
     <h2>Đổ người mẫu</h2>
     <div class="row"><button data-fill="15">15</button><button data-fill="36">36</button><button data-fill="64">64</button><button data-fill="100">100</button></div>
     <button class="red" id="btnClear">Làm trống toàn bộ chỗ ngồi</button>
@@ -173,6 +174,7 @@ document.querySelectorAll('[data-fill]').forEach(b => b.onclick = () => send('fi
 $('btnClear').onclick = () => send('clear');
 $('btnBots').onclick = () => send('bots', { on: $('btnBots').textContent.includes('Bật'), n: +$('botN').value, pace: $('botPace').value, rotateSeconds: +$('botRotate').value });
 for(const id of ['botN','botPace','botRotate']) $(id).onchange=()=>{if($('btnBots').textContent==='Tắt bot')send('bots',{on:true,n:+$('botN').value,pace:$('botPace').value,rotateSeconds:+$('botRotate').value});};
+$('btnFortune').onclick=()=>send('chat',{name:$('simName').value,text:'xin quẻ'});
 $('btnSay').onclick = () => send('say', { text: $('sayText').value });
 $('btnChant').onclick = () => send('chant');
 for (const k of SETTING_IDS) $(k).addEventListener('change', () => send('settings', { settings: readSettings() }));
