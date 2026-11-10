@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TikTokLiveConnection, RouteConfig, ControlEvent } from 'tiktok-live-connector';
-import { TIKTOK_CONNECTION_OPTIONS, explainTikTokConnectionError } from '../tiktok-config.mjs';
+import { TIKTOK_CONNECTION_OPTIONS, buildTikTokConnectionOptions, explainTikTokConnectionError } from '../tiktok-config.mjs';
 
 test('connect skips the Business-only gift catalogue and reaches normal WebSocket signing', async () => {
   const original = {
@@ -37,4 +37,14 @@ test('provider restrictions remain visible; unrelated errors retain their origin
   assert.match(explainTikTokConnectionError(new Error('This endpoint requires a Business plan.')), /EulerStream/);
   assert.match(explainTikTokConnectionError(new Error('This endpoint requires a Business plan.')), /Business plan/);
   assert.equal(explainTikTokConnectionError(new Error('User is offline')), 'User is offline');
+});
+
+
+test('EulerStream key is optional, trimmed and passed only as a connection option', () => {
+  assert.deepEqual(buildTikTokConnectionOptions({}), { ...TIKTOK_CONNECTION_OPTIONS });
+  assert.deepEqual(buildTikTokConnectionOptions({ EULERSTREAM_API_KEY: '  ' }), { ...TIKTOK_CONNECTION_OPTIONS });
+  const options = buildTikTokConnectionOptions({ EULERSTREAM_API_KEY: ' test-key-placeholder ' });
+  assert.equal(options.signApiKey, 'test-key-placeholder');
+  assert.equal(options.enableExtendedGiftInfo, false);
+  assert.equal('signApiKey' in TIKTOK_CONNECTION_OPTIONS, false);
 });

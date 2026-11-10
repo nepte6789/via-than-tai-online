@@ -107,3 +107,24 @@ Nếu gặp `[fetchWebcastSignatureFromEulerRoute] ... Business plan`, cập nh�
 Việc này không loại bỏ bước ký WebSocket bắt buộc của thư viện. Nếu nhà cung cấp tiếp tục báo giới hạn/quyền truy cập khi ký kết nối, cần kiểm tra điều kiện dịch vụ EulerStream; bản sửa không cam kết kết nối miễn phí luôn hoạt động. Không cần cung cấp mật khẩu hay cookie TikTok.
 
 Kiểm tra lỗi này bằng `cd live && node --test test/tiktok-config.test.mjs`.
+
+### Dùng tài khoản EulerStream của bạn
+
+Lấy API key trong Dashboard của EulerStream. Không dùng mật khẩu tài khoản, không gửi key trong bình luận/chat, không ghi vào HTML hoặc commit lên GitHub. Server đọc biến môi trường `EULERSTREAM_API_KEY` và truyền qua tùy chọn `signApiKey` của thư viện. Không có key thì giữ cấu hình kết nối cộng đồng như trước.
+
+Trên Windows PowerShell, mở terminal trong thư mục `live` rồi chạy (thay giá trị mẫu bằng key của bạn ngay trên máy):
+
+```powershell
+$env:EULERSTREAM_API_KEY = "YOUR_API_KEY"
+npm start
+```
+
+Trên macOS/Linux, mở terminal trong thư mục `live`:
+
+```sh
+read -r -s -p "EulerStream API key: " EULERSTREAM_API_KEY
+export EULERSTREAM_API_KEY
+npm start
+```
+
+Đặt biến môi trường trong hệ điều hành hoặc trình quản lý tiến trình nếu muốn giữ cấu hình sau khi đóng terminal. Sau khi đổi key, khởi động lại server rồi kết nối lại kênh. API key không được gửi xuống overlay/bảng điều khiển. Có tài khoản hoặc API key không đồng nghĩa mọi endpoint đều được phép: quyền ký và hạn mức phụ thuộc gói EulerStream. Danh mục quà mở rộng vẫn tắt để tránh gọi API URL-signing yêu cầu Business.

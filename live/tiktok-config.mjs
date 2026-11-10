@@ -5,6 +5,12 @@ export const TIKTOK_CONNECTION_OPTIONS = Object.freeze({
   processInitialData: false,
 });
 
+// Server-only configuration: never include this key in WebSocket state, logs or HTML.
+export function buildTikTokConnectionOptions(env = process.env) {
+  const key = String(env.EULERSTREAM_API_KEY || '').trim();
+  return { ...TIKTOK_CONNECTION_OPTIONS, ...(key ? { signApiKey: key } : {}) };
+}
+
 export function explainTikTokConnectionError(error) {
   const message = String(error?.message || error);
   if (/Business plan/i.test(message)) {

@@ -6,7 +6,7 @@
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
 import '../assets/fortunes.js';
-import { TIKTOK_CONNECTION_OPTIONS, explainTikTokConnectionError } from './tiktok-config.mjs';
+import { buildTikTokConnectionOptions, explainTikTokConnectionError } from './tiktok-config.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -168,7 +168,7 @@ async function connectTikTok(uniqueId){
   try {
     TikTokLib ||= await import('tiktok-live-connector');
     const { TikTokLiveConnection, WebcastEvent, ControlEvent } = TikTokLib;
-    const conn = new TikTokLiveConnection(uniqueId, { ...TIKTOK_CONNECTION_OPTIONS });
+    const conn = new TikTokLiveConnection(uniqueId, buildTikTokConnectionOptions());
     const av = u => u?.profilePicture?.url?.[0] || u?.profilePicture?.urlList?.[0] || u?.avatarThumb?.urlList?.[0] || u?.avatarThumb?.url?.[0] || '';
     const nm = u => u?.nickname || u?.uniqueId || 'ẩn danh';
     conn.on(WebcastEvent.CHAT, d => onChat(d.user?.uniqueId || d.user?.userId, nm(d.user), d.comment, av(d.user)));
