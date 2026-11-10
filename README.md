@@ -1,6 +1,6 @@
 # Vía Thần Tài Online
 
-Không gian Vía Thần Tài Online 2.5D cho TikTok LIVE. Người xem tương tác trên sân tài lộc; người tặng quà được xướng tên cùng lời chúc may mắn, bình an và hanh thông bằng giọng đọc tiếng Việt. Giữ nguyên hệ thống nhạc nền, chuông mõ, hiệu ứng và tương tác.
+Không gian Vía Thần Tài Online 2.5D cho TikTok LIVE. Người xem tương tác trên sân tài lộc; người tặng quà được xướng tên cùng lời chúc may mắn, bình an và hanh thông bằng giọng đọc tiếng Việt. Nhạc hòa tấu tài lộc vui tươi, hiệu ứng quà tặng và lời chúc tiếng Việt.
 
 Mã nguồn chia sẻ miễn phí (MIT). Có hai phần:
 
@@ -29,7 +29,7 @@ Chưa live vẫn thử được: dùng **Thử tương tác**, **Đổ người 
 ### Người xem làm được gì
 
 - **Bình luận bất kỳ**: được vào ngồi (tối đa 100 chỗ, chỗ ngồi tự mở rộng 24 → 36 → 64 → 100). Đầy chỗ thì người im lặng lâu nhất mà chưa tặng quà sẽ nhường chỗ.
-- **Bình luận đúng một từ** `nam`, `nữ`, `sư`, `ni`, `tiểu`, `bà`, `cao tăng`: đổi hình nhân vật. Câu "Nam mô A Di Đà Phật" không bị hiểu nhầm thành "nam".
+- **Bình luận đúng một từ** `nam`, `nữ`, `bà`: đổi hình nhân vật. Câu "Nam mô A Di Đà Phật" không bị hiểu nhầm thành "nam".
 - **Tặng quà**: banner xướng tên, giọng đọc hồi hướng (lấy lời nguyện từ bình luận gần nhất của người đó nếu có), hiệu ứng theo giá trị quà, cộng điểm vào bảng Bảng Tài Lộc.
 - **Thả tim**: tim bay trên đầu nhân vật.
 
@@ -80,3 +80,9 @@ MIT, xem `LICENSE`.
 ### Giao diện Vía Thần Tài
 
 Cảnh điện Thần Tài đỏ–vàng và các biểu tượng đồng vàng, thỏi vàng, túi lộc được vẽ bằng SVG trong `assets/`. Cả web tĩnh và overlay dùng chung bộ ảnh này. Quà trên web là mô phỏng, không có thanh toán. Các ảnh gốc được giữ để tương thích với nhân vật hiện có.
+
+### Nhạc tài lộc và bot tự thay khách
+
+- Bấm **Bật nhạc tài lộc** trên overlay để phát bản hòa tấu ngũ cung vui tươi, được tổng hợp tại trình duyệt trong `assets/prosperity-music.js`, không cần tải MP3. Nhạc tự giảm âm khi đọc lời chúc; công tắc Nhạc nền bật/tắt nhạc. Không còn ba vị sư cố định, chuông hay mõ.
+- Trong bảng điều khiển, chọn **Đổi một khách mỗi (giây)** (15–3600, mặc định 90), số bot và nhịp tương tác rồi bật bot. Mỗi chu kỳ thay một khách mô phỏng, không thay khách TikTok thật. Tên bot không có hậu tố; bot xin lời chúc và nhận tối đa 3 điểm lộc mỗi khách.
+- Bảng tài lộc tính độc lập với chỗ ngồi: giữ nguyên điểm khi bot đổi hoặc tắt, và khi tải lại overlay. Điểm giữ trong phiên server; khởi động lại server sẽ bắt đầu phiên mới. Quà TikTok thật giữ nguyên số điểm, không bị giới hạn như bot.

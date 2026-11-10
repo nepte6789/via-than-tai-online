@@ -78,10 +78,11 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
   <div id="chant" class="ui"><h4>✦ LỜI CHÚC TÀI LỘC ✦</h4><p id="chantText"></p></div>
   <div id="gift" class="ui"><div class="who" id="giftWho"></div><div class="what" id="giftWhat"></div><div class="pray" id="giftPray"></div></div>
-  <button id="unmute">🔔 Bấm để bật âm thanh</button>
+  <button id="unmute">♪ Bấm để bật nhạc tài lộc</button>
   <div id="conn">đang kết nối…</div>
 </div></div>
 
+<script src="/assets/prosperity-music.js"></script>
 <script>
 /* ======================= stage fit ======================= */
 const stage = document.getElementById('stage');
@@ -129,9 +130,6 @@ function reseat(){
 }
 document.getElementById('count').textContent = '0/24';
 
-/* the three fixed teachers in front of the altar */
-const TEACHERS = [ { name:'Thầy Minh Đạo', skin:'monk', x:300, y:1085, s:.36 }, { name:'Sư Trụ Trì', skin:'monk', x:540, y:1100, s:.4, master:true }, { name:'Thầy Tâm Từ', skin:'monk', x:780, y:1085, s:.36 } ];
-
 function addVisitor(p, instant){
   if (visitors.has(p.id)) { Object.assign(visitors.get(p.id), { name:p.name, skin:p.skin, avatar:p.avatar, coins:p.coins }); return; }
   const v = { ...p, state:'walk', x:540, y:2020, tx:0, ty:0, frame:0, ft:0, sitT:0, flip:false, fade:0, bubble:null, glow:0, bow:0, phase:Math.random()*6.28 };
@@ -141,10 +139,10 @@ function addVisitor(p, instant){
 function removeVisitor(id){ visitors.delete(id); reseat(); }
 
 /* ======================= HUD ======================= */
-let startedAt = Date.now();
+let startedAt = Date.now(), leaderboard = [];
 function updateCount(){ document.getElementById('count').textContent = `${visitors.size}/${cap}`; }
 function renderMerit(){
-  const top = [...visitors.values()].filter(v=>v.coins>0).sort((a,b)=>b.coins-a.coins).slice(0,5);
+  const top = leaderboard.slice(0,5);
   const ol = document.getElementById('meritList'); ol.innerHTML='';
   if (!top.length){ ol.innerHTML='<li class="empty">Chưa có</li>'; return; }
   top.forEach((v,i)=>{ const li=document.createElement('li'); const a=document.createElement('span'); a.textContent=`${i+1}. ${v.name}`; const b=document.createElement('span'); b.textContent=v.coins; li.append(a,b); ol.append(li); });
@@ -162,36 +160,19 @@ let chantHide=null;
 function showChant(text){ document.getElementById('chantText').textContent=text; const el=document.getElementById('chant'); el.classList.add('show'); clearTimeout(chantHide); chantHide=setTimeout(()=>el.classList.remove('show'), 14000); }
 
 /* ======================= audio ======================= */
-let AC=null, master=null, musicGain=null, sfx=null, settings={ music:true, mo:false, moBpm:52 };
-const TRACKS=[]; let trackIdx=Math.floor(Math.random()*TRACKS.length), musicEl=null;
-document.getElementById('unmute').onclick = e => { e.currentTarget.remove(); startAudio(); };
+let AC=null, master=null, musicGain=null, music=null, settings={ music:true };
+let haloPulse=0;
+document.getElementById('unmute').onclick = async e => {
+  if(!AC) startAudio();
+  try { await AC.resume(); e.currentTarget.remove(); playTTS(); } catch { e.currentTarget.textContent='Bấm để thử bật âm thanh'; }
+};
 function startAudio(){
   AC = new (window.AudioContext||window.webkitAudioContext)();
-  master = AC.createGain(); master.gain.value=.9; master.connect(AC.destination);
-  musicGain = AC.createGain(); musicGain.gain.value=settings.music?.5:0; musicGain.connect(master);
-  sfx = AC.createGain(); sfx.gain.value=1; sfx.connect(master);
-  nextTrack(); scheduleMo(); bell();
+  master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);
+  musicGain=AC.createGain();musicGain.gain.value=settings.music?.5:0;musicGain.connect(master);
+  music=new ProsperityMusic(AC,musicGain);music.start();
 }
-function nextTrack(){
-  if (!TRACKS.length) return;
-  if (musicEl){ musicEl.pause(); }
-  musicEl = new Audio(TRACKS[trackIdx++ % TRACKS.length]); const src=AC.createMediaElementSource(musicEl); src.connect(musicGain);
-  musicEl.onended = nextTrack; musicEl.play().catch(()=>{});
-}
-function duck(on){ if(!musicGain) return; const t=AC.currentTime, target = !settings.music ? 0 : on ? .14 : .5; musicGain.gain.cancelScheduledValues(t); musicGain.gain.setValueAtTime(musicGain.gain.value,t); musicGain.gain.linearRampToValueAtTime(target,t+.5); }
-let haloPulse=0;
-function bell(big){
-  if(!AC) return; const t=AC.currentTime, k=big?1.7:1;
-  for (const [f,a,d] of [[216,.55,7],[432,.35,5],[1296,.12,3],[2160,.05,2]]) { const o=AC.createOscillator(); o.type='sine'; o.frequency.value=f*(big?.75:1); const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(a*k*.7,t+.015); g.gain.exponentialRampToValueAtTime(.0005,t+d*k); o.connect(g); g.connect(sfx); o.start(t); o.stop(t+d*k+.1); }
-  haloPulse=1;
-}
-function mo(){
-  if(!AC) return; const t=AC.currentTime;
-  const o=AC.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(620,t); o.frequency.exponentialRampToValueAtTime(380,t+.05);
-  const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=700; bp.Q.value=3; const g=AC.createGain(); g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.001,t+.14);
-  o.connect(bp); bp.connect(g); g.connect(sfx); o.start(t); o.stop(t+.16);
-}
-let moTimer=null; function scheduleMo(){ clearInterval(moTimer); if (AC && settings.mo) moTimer=setInterval(mo, 60000/Math.max(20,settings.moBpm||52)); }
+function duck(on){if(!musicGain)return;musicGain.gain.cancelScheduledValues(AC.currentTime);musicGain.gain.setTargetAtTime(!settings.music?0:on?.13:.5,AC.currentTime,.15);}
 // server-made voice lines play one after another
 const ttsQ=[]; let ttsPlaying=false;
 function queueTTS(url, onStart){ ttsQ.push({url,onStart}); playTTS(); }
@@ -209,7 +190,7 @@ function giftFx(v, tier){
   const kind = tier>=3?'bell':tier>=2?'lotus':'incense', s=v.seat?.scale||.4;
   fx.push({kind, x:v.x, y:v.y-220*s, t:0, life: tier>=3?3.4:2.4, scale: s*(tier>=3?1.5:1.1)});
   for (let i=0;i<(tier>=3?22:tier>=2?10:4);i++) petals.push({x:v.x+(Math.random()-.5)*120, y:v.y-80, vx:(Math.random()-.5)*40, vy:-(70+Math.random()*90), t:0, life:2.6+Math.random(), s:.16+Math.random()*.14});
-  if (tier>=3){ bell(true); for (let i=0;i<30;i++) petals.push({x:540+(Math.random()-.5)*600, y:300+Math.random()*250, vx:(Math.random()-.5)*40, vy:30+Math.random()*50, t:0, life:5, s:.2+Math.random()*.15}); }
+  if (tier>=3){ haloPulse=1; for (let i=0;i<30;i++) petals.push({x:540+(Math.random()-.5)*600, y:300+Math.random()*250, vx:(Math.random()-.5)*40, vy:30+Math.random()*50, t:0, life:5, s:.2+Math.random()*.15}); }
 }
 function hearts(v,n){ for (let i=0;i<Math.min(6,n);i++) petals.push({x:v.x+(Math.random()-.5)*60, y:v.y-140*(v.seat?.scale||.4), vx:(Math.random()-.5)*20, vy:-(50+Math.random()*40), t:0, life:1.6, s:.08, heart:true}); }
 
@@ -224,8 +205,9 @@ function connect(){
     const m=JSON.parse(e.data);
     switch(m.t){
       case 'state':
-        Object.assign(settings,m.settings); applySettings(); startedAt=m.startedAt;
+        Object.assign(settings,m.settings); applySettings(); startedAt=m.startedAt; leaderboard=m.leaderboard||[];
         visitors.clear(); order=[]; layout(m.cap); for (const p of m.viewers) addVisitor(p,true); updateCount(); renderMerit(); break;
+      case 'leaderboard': leaderboard=m.entries; renderMerit(); break;
       case 'settings': Object.assign(settings,m.settings); applySettings(); if (m.cap!==cap){ layout(m.cap); updateCount(); } break;
       case 'join': if (m.cap!==cap) layout(m.cap); addVisitor(m.v, m.v.demo && visitors.size>8); updateCount(); break;
       case 'leave': removeVisitor(m.id); updateCount(); renderMerit(); break;
@@ -234,16 +216,14 @@ function connect(){
       case 'gift': { const v=visitors.get(m.id); if(v){ v.coins=m.total; giftFx(v,m.tier); } renderMerit(); showGift(m); } break;
       case 'like': { const v=visitors.get(m.id); if(v) hearts(v,m.n); } break;
       case 'tts': queueTTS(m.url); break;
-      case 'chant': showChant(m.text); bell(); break;
-      case 'bell': bell(true); break;
-      case 'mo1': mo(); break;
+      case 'chant': showChant(m.text); break;
     }
   };
 }
 function applySettings(){
   document.getElementById('title').textContent=settings.title||'Vía Thần Tài Online';
   document.getElementById('subtitle').textContent=settings.subtitle||'Cung chúc phát tài · Vạn sự hanh thông';
-  duck(false); scheduleMo();
+  duck(ttsPlaying);
 }
 connect();
 
@@ -279,9 +259,6 @@ function frame(now){
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.2+.08*Math.sin(t*1.2)+haloPulse*.5; sprite(A.halo,540,560,2.7+haloPulse*.35,.5); ctx.restore();
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.05+.035*Math.sin(t*9)*Math.sin(t*13.3); ctx.fillStyle='#ffb347'; ctx.fillRect(0,300,1080,800); ctx.restore();
   ctx.save(); ctx.fillStyle='#efe3cc'; for (let i=0;i<16;i++){ const a=(t*.08+i*.0625)%1; ctx.globalAlpha=.28*(1-a); ctx.beginPath(); ctx.arc(540+Math.sin(a*7+i)*20*a, 1000-a*280, 4+a*15, 0, 6.28); ctx.fill(); } ctx.restore();
-  // teachers
-  for (const tc of TEACHERS){ if (tc.master){ ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.35+.1*Math.sin(t*1.5); sprite(A.halo,tc.x,tc.y-120,.9,.5); ctx.restore(); }
-    sprite(A[tc.skin],tc.x,tc.y,tc.s); tag(tc.name,tc.x,tc.y-tc.s*260-22,tc.s,'gold'); }
   // visitors back to front
   const bubbles=[];
   const list=[...visitors.values()].sort((a,b)=>a.y-b.y);
