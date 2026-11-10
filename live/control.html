@@ -84,14 +84,15 @@ button.red{background:var(--red);border-color:#b84a33}
     <h2>Bot tương tác mô phỏng</h2>
     <div class="row">
       <label>Số bot<input id="botN" type="number" min="1" max="100" value="12"></label>
+      <label>Đổi một khách mỗi (giây)<input id="botRotate" type="number" min="15" max="3600" value="90"></label>
       <label>Nhịp<select id="botPace"><option value="slow">Chậm</option><option value="mid" selected>Vừa</option><option value="fast">Nhanh</option></select></label>
       <button id="btnBots">Bật bot</button>
     </div>
-    <p class="hint">Bot chỉ chạy trên màn hình của anh, không phải người xem TikTok thật.</p>
+    <p class="hint">Bot mô phỏng tự xin lời chúc, nhận tối đa 3 điểm lộc mỗi khách. Tự thay khách theo thời gian đã chọn; bảng tài lộc giữ điểm trong phiên, kể cả khi khách rời đi.</p>
   </section>
 
   <section class="card">
-    <h2>3 · Giọng đọc · Nhạc · Chuông mõ</h2>
+    <h2>3 · Giọng đọc · Nhạc tài lộc</h2>
     <div class="row">
       <label>Giọng<select id="voice"><option value="vi-VN-NamMinhNeural">Nam Minh (nam)</option><option value="vi-VN-HoaiMyNeural">Hoài My (nữ)</option></select></label>
       <label>Độ trầm (Hz)<input id="pitch" type="number" step="1" value="-18"></label>
@@ -101,15 +102,12 @@ button.red{background:var(--red);border-color:#b84a33}
     <textarea id="sayText">Cung chúc phát tài, vạn sự hanh thông. Kính chúc quý khách thân tâm an lạc, tài lộc hanh thông, vạn sự như ý.</textarea>
     <div class="row"><button class="primary" id="btnSay">Phát lên live</button><button id="btnChant">Phát lời chúc ngay</button></div>
     <div class="row tight">
-      <label class="check"><input type="checkbox" id="music" checked> Nhạc nền</label>
-      <label class="check"><input type="checkbox" id="mo"> Tiếng mõ</label>
+      <label class="check"><input type="checkbox" id="music" checked> Nhạc tài lộc vui tươi</label>
       <label class="check"><input type="checkbox" id="autoChant" checked> Lời chúc tự động</label>
     </div>
     <div class="row">
-      <label>Nhịp mõ (BPM)<input id="moBpm" type="number" min="20" max="120" value="52"></label>
       <label>Lời chúc mỗi (phút)<input id="chantEveryMin" type="number" min="1" max="60" value="3"></label>
     </div>
-    <div class="row"><button id="btnBell">🔔 Thỉnh chuông</button><button id="btnMo">Gõ mõ</button></div>
     <h2>Cảnh</h2>
     <label>Tên không gian<input id="title" value="Vía Thần Tài Online"></label>
     <label>Dòng phụ<input id="subtitle" value="Cung chúc phát tài · Vạn sự hanh thông"></label>
@@ -131,7 +129,7 @@ const $ = id => document.getElementById(id);
 let ws = null;
 const send = (cmd, extra={}) => ws?.readyState===1 && ws.send(JSON.stringify({ t:'ctl', cmd, ...extra }));
 function logLine(s){ const el=$('log'); el.textContent += s + '\n'; el.scrollTop = el.scrollHeight; }
-const SETTING_IDS = ['voice','pitch','rate','music','mo','autoChant','moBpm','chantEveryMin','title','subtitle','seatMode','joinOnEnter'];
+const SETTING_IDS = ['voice','pitch','rate','music','autoChant','chantEveryMin','title','subtitle','seatMode','joinOnEnter'];
 function fillSettings(s){ for (const k of SETTING_IDS){ const el=$(k); if (!el || s[k]===undefined) continue; if (el.type==='checkbox') el.checked=!!s[k]; else el.value=s[k]; } }
 function readSettings(){ const o={}; for (const k of SETTING_IDS){ const el=$(k); o[k] = el.type==='checkbox' ? el.checked : el.type==='number' ? +el.value : el.value; } return o; }
 const people = new Map();
@@ -142,6 +140,7 @@ function renderPeople(){
   list.forEach((p,i)=>{ const tr=document.createElement('tr'); const a=document.createElement('td'); a.textContent=`${String(i+1).padStart(2,'0')}  ${p.name}`; const b=document.createElement('td'); b.textContent=p.coins? p.coins+' ✧':''; tr.append(a,b); tb.append(tr); });
   $('cnt').textContent = `${people.size} người`;
 }
+function fillBots(b){if(!b)return;$('btnBots').textContent=b.on?'Tắt bot':'Bật bot';$('botN').value=b.n;$('botPace').value=b.pace;$('botRotate').value=b.rotateSeconds;}
 function setTT(st){
   const el=$('tt'); el.className='chip ' + (st.status==='connected'?'ok':st.status==='error'?'bad':'');
   el.textContent = st.status==='connected' ? `TikTok: @${st.uniqueId} ✓` : st.status==='connecting' ? `TikTok: đang kết nối @${st.uniqueId}…` : st.status==='error' ? 'TikTok: lỗi kết nối' : 'TikTok: chưa kết nối';
@@ -152,14 +151,14 @@ function connect(){
   ws.onclose = () => { $('srv').textContent='Server: mất kết nối'; $('srv').className='chip bad'; setTimeout(connect, 2000); };
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
-    if (m.t==='state'){ fillSettings(m.settings); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
+    if (m.t==='state'){ fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
     else if (m.t==='logs'){ $('log').textContent=''; m.lines.forEach(logLine); }
     else if (m.t==='log') logLine(m.line);
     else if (m.t==='tiktok') setTT(m);
     else if (m.t==='join'){ people.set(m.v.id,m.v); renderPeople(); }
     else if (m.t==='leave'){ people.delete(m.id); renderPeople(); }
     else if (m.t==='gift'){ const p=people.get(m.id); if(p){ p.coins=m.total; renderPeople(); } }
-    else if (m.t==='bots') $('btnBots').textContent = m.on ? 'Tắt bot' : 'Bật bot';
+    else if (m.t==='bots') fillBots(m);
   };
 }
 connect();
@@ -172,11 +171,10 @@ $('btnChat').onclick = () => send('chat', { name: $('simName').value, text: $('s
 document.querySelectorAll('[data-gift]').forEach(b => b.onclick = () => send('gift', { name: $('simName').value, gift: b.dataset.gift, diamonds: +b.dataset.dia, count: 1 }));
 document.querySelectorAll('[data-fill]').forEach(b => b.onclick = () => send('fill', { n: +b.dataset.fill }));
 $('btnClear').onclick = () => send('clear');
-$('btnBots').onclick = () => send('bots', { on: $('btnBots').textContent.includes('Bật'), n: +$('botN').value, pace: $('botPace').value });
+$('btnBots').onclick = () => send('bots', { on: $('btnBots').textContent.includes('Bật'), n: +$('botN').value, pace: $('botPace').value, rotateSeconds: +$('botRotate').value });
+for(const id of ['botN','botPace','botRotate']) $(id).onchange=()=>{if($('btnBots').textContent==='Tắt bot')send('bots',{on:true,n:+$('botN').value,pace:$('botPace').value,rotateSeconds:+$('botRotate').value});};
 $('btnSay').onclick = () => send('say', { text: $('sayText').value });
 $('btnChant').onclick = () => send('chant');
-$('btnBell').onclick = () => send('bell');
-$('btnMo').onclick = () => send('mo');
 for (const k of SETTING_IDS) $(k).addEventListener('change', () => send('settings', { settings: readSettings() }));
 </script>
 </body>

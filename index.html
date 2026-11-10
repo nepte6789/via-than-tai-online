@@ -141,6 +141,7 @@ input::placeholder{color:#7d6a52}
   </div>
 </div></div>
 
+<script src="assets/prosperity-music.js"></script>
 <script>
 /* ==========================================================
    2.5D hall: painted 9:16 background (Flow) + sprites on canvas.
@@ -204,13 +205,12 @@ DEMO.forEach((n,i)=>{ const v = addVisitor(n, SKINS[i%SKINS.length], true); v.co
 let AC=null, master=null, muted=false, mokTimer=null, bellTimer=null, me=null, haloPulse=0;
 /* Music: Gemini-made tracks played in order, crossfaded, ducked under TTS. Bell + mõ stay synthesized. */
 const TRACKS = []; // Optional licensed background tracks can be added here.
-let musicGain=null, musicEls=[], trackIdx=0, duck=1;
+let musicGain=null, musicEls=[], trackIdx=0, duck=1, festiveMusic=null;
 function audioStart(){
   if (AC) return;
   AC = new (window.AudioContext||window.webkitAudioContext)(); master = AC.createGain(); master.gain.value=.8; master.connect(AC.destination);
   musicGain = AC.createGain(); musicGain.gain.value=.55; musicGain.connect(master);
-  playTrack(Math.floor(Math.random()*TRACKS.length));
-  bell(); bellTimer=setInterval(bell, 45000); // Gentle chime ambience; no repetitive wooden-fish beat.
+  festiveMusic=new ProsperityMusic(AC,musicGain);festiveMusic.start();AC.resume().catch(()=>{});
 }
 function playTrack(i){
   if (!TRACKS.length) return;
@@ -226,17 +226,6 @@ function playTrack(i){
   const nt=document.getElementById('nowPlaying'); if (nt) nt.textContent = '♪ ' + tr.name;
 }
 function setDuck(on){ if(!musicGain) return; const t=AC.currentTime; musicGain.gain.cancelScheduledValues(t); musicGain.gain.setValueAtTime(musicGain.gain.value,t); musicGain.gain.linearRampToValueAtTime(on?.18:.55, t+.4); }
-function bell(big){
-  if(!AC||muted) return; const t=AC.currentTime, k = big?1.6:1;
-  for (const [f,a,d] of [[432,.5,6],[1296,.18,3.5],[2160,.08,2.2]]) { const o=AC.createOscillator(); o.type='sine'; o.frequency.value=f/(big?2:1); const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(a*k,t+.02); g.gain.exponentialRampToValueAtTime(.0005,t+d*k); o.connect(g); g.connect(master); o.start(t); o.stop(t+d*k+.1); }
-  haloPulse = 1;
-}
-function mok(){
-  if(!AC||muted||!me) return; const t=AC.currentTime;
-  const o=AC.createOscillator(); o.type='square'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(420,t+.03);
-  const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=4; const g=AC.createGain(); g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+.09);
-  o.connect(bp); bp.connect(g); g.connect(master); o.start(t); o.stop(t+.1);
-}
 // Pick a Vietnamese voice explicitly. Setting lang alone is not enough: with no vi voice installed the browser
 // falls back to its default (usually English) voice and reads Vietnamese text with English sounds.
 let viVoice = null, ttsWarned = false;
@@ -279,7 +268,7 @@ function donate(v, coins, kind, text){
   fx.push({ kind, x:v.seat.x, y:v.seat.y-120*v.seat.scale, t:0, life: big?3.2:2.2, scale: v.seat.scale*(big?1.6:1.1) });
   // petals drift up from the seat; big gifts also shower the Buddha
   for (let i=0;i<(big?18:coins>=20?8:3);i++) floaters.push({ x:v.seat.x+(Math.random()-.5)*160*v.seat.scale, y:v.seat.y-60, vx:(Math.random()-.5)*30, vy:-(60+Math.random()*80), t:0, life:2.5+Math.random(), s:.18+Math.random()*.15 });
-  if (big){ bell(true); for (let i=0;i<24;i++) floaters.push({ x:SW/2+(Math.random()-.5)*500, y:300+Math.random()*300, vx:(Math.random()-.5)*40, vy:20+Math.random()*40, t:0, life:4, s:.2+Math.random()*.15, down:true }); }
+  if (big){ haloPulse=1; for (let i=0;i<24;i++) floaters.push({ x:SW/2+(Math.random()-.5)*500, y:300+Math.random()*300, vx:(Math.random()-.5)*40, vy:20+Math.random()*40, t:0, life:4, s:.2+Math.random()*.15, down:true }); }
   const label = {petal:'Đồng vàng',incense:'Dâng hương',lotus:'Thỏi vàng',bell:'Túi tài lộc'}[kind];
   say(v.name, ` đã gửi ${label} ×${coins}` + (text?` · "${text}"`:''), true);
   showToast(`${v.name} dâng ${label}` + (text?` — ${text}`:''));
@@ -306,7 +295,7 @@ form.addEventListener('submit', e=>{
 document.getElementById('gifts').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||!me) return; donate(me, +b.dataset.coins, b.dataset.fx, SUTRA[Math.floor(Math.random()*SUTRA.length)]); });
 document.getElementById('nextTrack').addEventListener('click', ()=>{ if(AC) playTrack(trackIdx+1); });
 document.getElementById('mute').addEventListener('click', e=>{ muted=!muted; if(master) master.gain.value=muted?0:.8; e.currentTarget.textContent=muted?'Bật nhạc':'Tắt nhạc'; e.currentTarget.setAttribute('aria-pressed',muted); });
-document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack']) document.getElementById(id).hidden=true; for (const m of musicEls){ try{m.el.pause();}catch(e){} } musicEls=[]; if (AC){ AC.close(); AC=null; } clearInterval(mokTimer); clearInterval(bellTimer); renderBoard(); });
+document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack']) document.getElementById(id).hidden=true; for (const m of musicEls){ try{m.el.pause();}catch(e){} } musicEls=[]; if(festiveMusic){festiveMusic.stop();festiveMusic=null;} if (AC){ AC.close(); AC=null; } clearInterval(mokTimer); clearInterval(bellTimer); renderBoard(); });
 canvas.addEventListener('pointerdown', ()=>{ if(!me||me.state!=='sit') return; const s=SUTRA[Math.floor(Math.random()*SUTRA.length)]; say(me.name,' '+s); me.bow=1; floaters.push({x:me.seat.x,y:me.seat.y-80,vx:0,vy:-70,t:0,life:2,s:.14}); });
 // demo activity: random comments and small gifts from the crowd
 setInterval(()=>{ if (visitors.length<2) return; const v=visitors[Math.floor(Math.random()*visitors.length)]; if (v===me) return;

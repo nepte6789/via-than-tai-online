@@ -26,13 +26,16 @@ const settings = {
   voice: 'vi-VN-NamMinhNeural',      // or vi-VN-HoaiMyNeural
   pitch: -18,                        // Hz
   rate: -20,                         // %
-  music: true, mo: false, moBpm: 52,
+  music: true,
   autoChant: true, chantEveryMin: 3,
   seatMode: 'auto',                  // auto | 24 | 36 | 64 | 100
   joinOnEnter: false,                // also seat viewers who only enter the room
   gifts: { readAll: true, minDiamonds: 1 },
 };
 const viewers = new Map();           // id -> { id, name, skin, avatar, coins, joinedAt, lastAt, lastText, lastTextAt, demo }
+const merit = new Map(); // Session totals survive bot rotation and viewers leaving their seats.
+function leaderboard(){return [...merit.values()].sort((a,b)=>b.coins-a.coins).slice(0,5);}
+function publishMerit(){broadcast({t:'leaderboard',entries:leaderboard()});}
 const startedAt = Date.now();
 let tiktok = null, tiktokState = { status: 'idle', uniqueId: '', error: '' };
 const log = [];
@@ -44,8 +47,7 @@ function capacity(){ if (settings.seatMode !== 'auto') return +settings.seatMode
 /* skins: sprites that exist in /assets. Walking strips exist for man / woman / granny. */
 // A comment changes the outfit only when it IS the keyword (≤ 3 words), so "Cung chúc phát tài, vạn sự hanh thông" never reads as "nam".
 const SKIN_WORDS = [
-  ['master', ['cao tăng','cao tang']], ['monk', ['sư','su','sư thầy','su thay','thầy','thay']], ['nun', ['ni','ni cô','ni co','sư cô','su co']],
-  ['child', ['tiểu','tieu','chú tiểu','chu tieu','bé','be']], ['granny', ['bà','ba','áo nâu','ao nau','cụ','cu']],
+  ['granny', ['bà','ba','áo nâu','ao nau','cụ','cu']],
   ['woman', ['nữ','nu','chị','chi','gái','gai']], ['man', ['nam','anh','trai']],
 ];
 function skinFromText(t){
@@ -57,7 +59,7 @@ function skinFromText(t){
 const DEFAULT_SKINS = ['man', 'woman', 'woman', 'man', 'granny'];
 
 function pub(v){ return { id:v.id, name:v.name, skin:v.skin, avatar:v.avatar||'', coins:v.coins, demo:!!v.demo }; }
-function snapshot(){ return { t:'state', settings, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
+function snapshot(){ return { t:'state', settings, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
 
 function seat(id, name, opts = {}){
   let v = viewers.get(id);
@@ -68,7 +70,7 @@ function seat(id, name, opts = {}){
     viewers.delete(quiet.id); broadcast({ t:'leave', id: quiet.id });
   }
   v = { id, name: (name||id).slice(0, 18), skin: opts.skin || DEFAULT_SKINS[viewers.size % DEFAULT_SKINS.length],
-        avatar: opts.avatar || '', coins: 0, joinedAt: Date.now(), lastAt: Date.now(), demo: !!opts.demo };
+        avatar: opts.avatar || '', coins: merit.get(id)?.coins || 0, joinedAt: Date.now(), lastAt: Date.now(), demo: !!opts.demo };
   viewers.set(id, v);
   broadcast({ t:'join', v: pub(v), cap: capacity() });
   return { v, isNew:true };
@@ -89,8 +91,15 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   giftName = String(giftName || 'quà').slice(0, 30); count = Math.max(1, Math.min(9999, +count || 1));
   const { v } = seat(id, name, { avatar });
   if (!v) return;
-  const coins = Math.max(1, (diamonds || 1) * (count || 1));
+  const amount = Math.max(1, (diamonds || 1) * (count || 1));
+  const coins = v.demo ? Math.min(amount, Math.max(0, 3-v.coins)) : amount;
+  if (!coins) return;
   v.coins += coins;
+  merit.set(id,{id,name:v.name,coins:v.coins,demo:v.demo});
+  // Keep simulated history bounded; real gift totals are never evicted.
+  const simulated=[...merit.values()].filter(x=>x.demo);
+  if(simulated.length>100){const pinned=new Set(leaderboard().map(x=>x.id));for(const entry of simulated.filter(x=>!pinned.has(x.id)).sort((a,b)=>a.coins-b.coins).slice(0,simulated.length-100)) merit.delete(entry.id);}
+  publishMerit();
   const prayer = (v.lastText && Date.now() - v.lastTextAt < 90_000 && v.lastText.length > 6) ? v.lastText : pickPrayer();
   const tier = coins >= 99 ? 3 : coins >= 10 ? 2 : 1;
   const line = `Cung chúc phát tài, vạn sự hanh thông. Quý khách ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
@@ -196,14 +205,12 @@ function onControl(m){
     case 'gift': { const n = String(m.name || 'Khách').slice(0, 18); onGift('sim_' + n, n, String(m.gift || 'Hoa hồng').slice(0, 30), clamp(m.count, 1, 99), clamp(m.diamonds, 1, 50000)); break; }
     case 'fill': fillDemo(clamp(m.n, 1, 100)); addLog(`Đổ người mẫu: ${viewers.size} người`); break;
     case 'clear': clearSeats(); break;
-    case 'bell': broadcast({ t:'bell' }); break;
-    case 'mo': broadcast({ t:'mo1' }); break;
     case 'chant': chant(); break;
     case 'say': if (m.text) say(String(m.text).slice(0, 400), { tag:'say' }); break;
     case 'settings':
       applySettings(m.settings || {});
       scheduleChant(); broadcast({ t:'settings', settings, cap: capacity() }); break;
-    case 'bots': setBots(!!m.on, +m.n || 12, m.pace); break;
+    case 'bots': setBots(!!m.on, +m.n || 12, m.pace, m.rotateSeconds); break;
   }
 }
 
@@ -211,37 +218,47 @@ function onControl(m){
 const SETTING_RULES = {
   title: v => String(v).slice(0, 40), subtitle: v => String(v).slice(0, 60),
   voice: v => ['vi-VN-NamMinhNeural', 'vi-VN-HoaiMyNeural'].includes(v) ? v : settings.voice,
-  pitch: v => clamp(v, -50, 50), rate: v => clamp(v, -50, 50), moBpm: v => clamp(v, 20, 120), chantEveryMin: v => clamp(v, 1, 60),
-  music: Boolean, mo: Boolean, autoChant: Boolean, joinOnEnter: Boolean,
+  pitch: v => clamp(v, -50, 50), rate: v => clamp(v, -50, 50), chantEveryMin: v => clamp(v, 1, 60),
+  music: Boolean, autoChant: Boolean, joinOnEnter: Boolean,
   seatMode: v => ['auto', '24', '36', '64', '100'].includes(String(v)) ? String(v) : 'auto',
 };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, Math.round(+v || 0)));
 function applySettings(o){ for (const [k, fn] of Object.entries(SETTING_RULES)) if (k in o) settings[k] = fn(o[k]); }
 
 /* ----------------------------------------------------------------- bots */
-let botTimer = null;
-const BOT_LINES = ['Cung chúc phát tài, vạn sự hanh thông', 'Chúc phát tài, phát lộc', 'Cầu cho gia đình bình an', 'Cầu mong mọi điều tốt lành', 'nữ', 'nam', 'bà',
-  'Kính chúc cha mẹ mạnh khỏe, an khang', 'Thần Tài gõ cửa, may mắn cả năm', 'Chúc mọi người một ngày bình an', 'sư', 'Cầu công việc hanh thông'];
-function setBots(on, n, pace){
-  clearInterval(botTimer); botTimer = null;
-  if (on){
-    n = clamp(n, 1, 100);
-    for (let i = 0; i < n; i++) seat('bot_' + i, DEMO_NAMES[(i + 7) % DEMO_NAMES.length] + ' ·bot', { demo: true });
-    const every = { slow: 4000, mid: 1800, fast: 700 }[pace] || 1800;
-    botTimer = setInterval(() => {
-      const ids = [...viewers.keys()].filter(id => id.startsWith('bot_')); if (!ids.length) return;
-      const id = ids[Math.floor(Math.random() * ids.length)], v = viewers.get(id), r = Math.random();
-      if (r < .62) onChat(id, v.name, BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)]);
-      else if (r < .9) broadcast({ t:'like', id, n: 1 + Math.floor(Math.random() * 4) });
-      else if (r < .985) onGift(id, v.name, 'Hoa hồng', 1 + Math.floor(Math.random() * 3), 1);
-      else onGift(id, v.name, 'Thỏi vàng', 1, 99);
-    }, every);
-    addLog(`🤖 Bật ${n} bot, nhịp ${pace}`);
-  } else {
-    for (const id of [...viewers.keys()]) if (id.startsWith('bot_')) { viewers.delete(id); broadcast({ t:'leave', id }); }
-    addLog('🤖 Tắt bot');
+let botTimer=null, rotationTimer=null, botSerial=0;
+const botOptions={n:12,pace:'mid',rotateSeconds:90};
+const BOT_LINES=['Xin một lời chúc làm ăn hanh thông','Xin chúc gia đình bình an, tài lộc đủ đầy','Xin lời chúc buôn may bán đắt','Cầu công việc thuận lợi, vạn sự như ý','Xin lời chúc sức khỏe và may mắn'];
+const BOT_NAMES=['Minh Anh','Ngọc Hà','Thanh Mai','Quốc Bảo','Thùy Linh','Đức Huy','Kim Ngân','Tuấn Anh','Bảo Trâm','Hoàng Nam','Thu Hương','Gia Hân','Phúc An','Khánh Vy','Anh Khoa','Hải Yến','Trúc Linh','Mai Phương','Ngọc Minh','Quang Vinh','Thanh Tùng','Xuân Mai','Thiên Phúc','Đình Khang','Bảo Ngọc','Lan Anh','Hồng Nhung','Hải Đăng','Thảo Vy','Tuệ Anh','Minh Khôi','Ngọc Lan'];
+function spawnBot(){
+  const serial=botSerial++,id='bot_'+serial;
+  const first=BOT_NAMES[serial%BOT_NAMES.length];
+  const name=serial<BOT_NAMES.length?first:BOT_NAMES[serial%BOT_NAMES.length].split(' ')[0]+' '+BOT_NAMES[(serial+Math.floor(serial/BOT_NAMES.length)*7)%BOT_NAMES.length].split(' ').slice(-1)[0];
+  return seat(id,name,{demo:true,skin:DEFAULT_SKINS[serial%DEFAULT_SKINS.length]}).v;
+}
+function rotateBot(){
+  const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_')).sort((a,b)=>a.joinedAt-b.joinedAt);
+  if(bots.length){viewers.delete(bots[0].id);broadcast({t:'leave',id:bots[0].id});}
+  if(bots.length||viewers.size<100)spawnBot();
+}
+function setBots(on,n,pace,rotateSeconds){
+  clearInterval(botTimer);clearInterval(rotationTimer);botTimer=rotationTimer=null;
+  Object.assign(botOptions,{n:clamp(n,1,100),pace:['slow','mid','fast'].includes(pace)?pace:'mid',rotateSeconds:clamp(rotateSeconds||90,15,3600)});
+  const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));
+  for(const v of bots.slice(on?botOptions.n:0)){viewers.delete(v.id);broadcast({t:'leave',id:v.id});}
+  if(on){
+    for(let i=Math.min(bots.length,botOptions.n);i<botOptions.n&&viewers.size<100;i++)spawnBot();
+    botTimer=setInterval(()=>{
+      const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));if(!bots.length)return;
+      const v=bots[Math.floor(Math.random()*bots.length)],request=BOT_LINES[Math.floor(Math.random()*BOT_LINES.length)];
+      onChat(v.id,v.name,request);
+      if(Math.random()<.3&&v.coins<3)onGift(v.id,v.name,'Lộc may mắn',1,1);
+      else broadcast({t:'like',id:v.id,n:1});
+    },{slow:6000,mid:4000,fast:2500}[botOptions.pace]);
+    rotationTimer=setInterval(rotateBot,botOptions.rotateSeconds*1000);
   }
-  broadcast({ t:'bots', on }, 'control');
+  addLog(on?`Bật ${botOptions.n} bot; đổi một khách mỗi ${botOptions.rotateSeconds} giây`:'Tắt bot');
+  broadcast({t:'bots',on,...botOptions},'control');
 }
 
 /* -------------------------------------------------------------- server */
