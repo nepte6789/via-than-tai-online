@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Overlay 9:16 · Vía Thần Tài Online</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,500;0,700;1,400&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
 /* Overlay for TikTok LIVE Studio / OBS window capture. Everything sits on a 1080×1920 stage scaled to the window. */
 :root{
   --bg:#160904; --fg:#fff0cf; --muted:#e0bd83; --gold:#f4c542; --gold2:#ffe69a; --red:#a51f16;
   --panel:rgba(43,15,7,.86); --line:rgba(244,197,66,.62);
-  --display:"Noto Serif",Georgia,serif; --body:"Be Vietnam Pro",system-ui,sans-serif;
+  --display:"Playfair Display",Georgia,serif; --body:"Nunito Sans",system-ui,sans-serif;
   color-scheme:dark;
 }
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--body);color:var(--fg)}
@@ -86,6 +86,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
   <div id="conn">đang kết nối…</div>
 </div></div>
 
+<script src="/assets/festival-art.js"></script>
 <script src="/assets/prosperity-music.js"></script>
 <script>
 /* ======================= stage fit ======================= */
@@ -95,9 +96,8 @@ addEventListener('resize', fit); fit();
 
 /* ======================= assets ======================= */
 const A = {};
-const IMG = { hall:'/assets/than-tai-hall.svg', man:'/assets/characters/man.svg', woman:'/assets/characters/woman.svg', grandpa:'/assets/characters/grandpa.svg', granny:'/assets/characters/granny.svg', boy:'/assets/characters/boy.svg', girl:'/assets/characters/girl.svg',
-  lotus:'/assets/loc-vang.svg', halo:'/assets/fx_halo.png', bell:'/assets/tui-loc.svg', incense:'/assets/fx_incense.png', petal:'/assets/dong-tien.svg' };
-for (const [k,src] of Object.entries(IMG)){ const im=new Image(); im.src=src; A[k]=im; }
+const IMG = {hall:'/assets/artwork/hall-imperial.webp',man:'/assets/artwork/characters-festival.webp',woman:'/assets/artwork/characters-festival.webp',grandpa:'/assets/artwork/characters-festival.webp',granny:'/assets/artwork/characters-festival.webp',boy:'/assets/artwork/characters-festival.webp',girl:'/assets/artwork/characters-festival.webp',lotus:'/assets/artwork/props-festival.webp',petal:'/assets/artwork/props-festival.webp',bell:'/assets/artwork/props-festival.webp',incense:'/assets/artwork/props-festival.webp',tree:'/assets/artwork/props-festival.webp',blossom:'/assets/artwork/props-festival.webp'};
+for (const [k,src] of Object.entries(IMG)){ const im=FestivalArt.prepare(new Image(),k); im.src=src; A[k]=im; }
 const ANIM = {};
 const hasAnim = () => false;
 const avatars = new Map();
@@ -247,10 +247,10 @@ connect();
 
 /* ======================= render ======================= */
 const ctx=document.getElementById('c').getContext('2d');
-function sprite(im,x,y,s,ay=1){ if(!im?.naturalWidth) return; const w=im.naturalWidth*s,h=im.naturalHeight*s; ctx.drawImage(im,x-w/2,y-h*ay,w,h); }
+function sprite(im,x,y,s,ay=1){FestivalArt.draw(ctx,im,x,y,s,ay);}
 function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function tag(text,x,y,s,style,av,maxW){
-  const fs=Math.max(15,Math.round(30*s/.4)); ctx.font=`600 ${fs}px "Be Vietnam Pro",system-ui,sans-serif`;
+  const fs=Math.max(15,Math.round(30*s/.4)); ctx.font=`600 ${fs}px "Nunito Sans",system-ui,sans-serif`;
   const pad=fs*.5; let aw = av?fs*1.15:0;
   if (maxW){ if (aw && maxW < fs*5) aw=0, av=null; let t=text; while (t.length>2 && ctx.measureText(t).width+pad*2+aw > maxW) t=t.slice(0,-1); if (t!==text) text=t.trimEnd()+'…'; }
   const w=ctx.measureText(text).width+pad*2+aw, h=fs*1.5;
@@ -260,7 +260,7 @@ function tag(text,x,y,s,style,av,maxW){
   ctx.fillStyle = style==='gold'?'#ffd98a':'#f6e9cf'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text, x+aw/2, y+1);
 }
 function bubble(text,x,y,s){
-  const fs=Math.max(18,Math.round(26*s/.4)); ctx.font=`500 ${fs}px "Be Vietnam Pro",system-ui,sans-serif`;
+  const fs=Math.max(18,Math.round(26*s/.4)); ctx.font=`500 ${fs}px "Nunito Sans",system-ui,sans-serif`;
   let t=text; while (ctx.measureText(t).width>320 && t.length>4) t=t.slice(0,-2); if (t!==text) t=t.trimEnd()+'…';
   const w=ctx.measureText(t).width+fs*1.1, h=fs*1.6;
   ctx.fillStyle='rgba(255,247,230,.95)'; rr(x-w/2,y-h,w,h,fs*.5); ctx.fill();
@@ -274,9 +274,10 @@ function frame(now){
   if (A.hall.naturalWidth) ctx.drawImage(A.hall,0,0,1080,1920);
   // light: halo pulse behind the Buddha, candle flicker, incense smoke
   haloPulse=Math.max(0,haloPulse-dt*.4);
-  ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.2+.08*Math.sin(t*1.2)+haloPulse*.5; sprite(A.halo,540,560,2.7+haloPulse*.35,.5); ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.2+.08*Math.sin(t*1.2)+haloPulse*.5; const halo=ctx.createRadialGradient(540,520,80,540,520,250);halo.addColorStop(0,"#ffda7b33");halo.addColorStop(1,"#ffda7b00");ctx.fillStyle=halo;ctx.fillRect(290,270,500,500); ctx.restore();
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.05+.035*Math.sin(t*9)*Math.sin(t*13.3); ctx.fillStyle='#ffb347'; ctx.fillRect(0,300,1080,800); ctx.restore();
   ctx.save(); ctx.fillStyle='#efe3cc'; for (let i=0;i<16;i++){ const a=(t*.08+i*.0625)%1; ctx.globalAlpha=.28*(1-a); ctx.beginPath(); ctx.arc(540+Math.sin(a*7+i)*20*a, 1000-a*280, 4+a*15, 0, 6.28); ctx.fill(); } ctx.restore();
+  sprite(A.tree,125,1260,.4); sprite(A.blossom,960,1245,.45);
   // visitors back to front
   const bubbles=[];
   const list=[...visitors.values()].sort((a,b)=>a.y-b.y);
@@ -297,7 +298,7 @@ function frame(now){
     ctx.save(); ctx.globalAlpha=v.fade; ctx.translate(v.x,v.y); if (bowK) ctx.transform(1,0,0,1-bowK,0,0);
     let topY;
     if (anim){ const a=ANIM[v.skin], k=ws*1.05*260/a.seatH; if (v.flip) ctx.scale(-1,1); ctx.drawImage(A['anim_'+v.skin], v.frame*a.fw,0,a.fw,a.fh, -a.fw*k/2, -a.fh*k+breathe, a.fw*k, a.fh*k); topY=(v.state==='sit'?a.seatH:a.fh*.97)*k; }
-    else { const sk = v.skin; sprite(A[sk]||A.man,0,breathe,ws*1.05); topY=320*ws; }
+    else { const sk = v.skin; sprite(A[sk]||A.man,0,breathe,ws*1.05); topY=290*ws; }
     ctx.restore();
     const ty=v.y-topY-14*ws/.4;
     tag(v.name, v.x, ty, ws*.82, v.coins>=99?'gold':'', avatar(v.avatar), v.state==='sit' ? v.seat?.gap : 0);
@@ -317,7 +318,7 @@ function frame(now){
 let _n=0,_a=0,_w=null;const _r=()=>3e5+Math.random()*3e5;
 function _g(t){if(!_n)_n=t+_r();if(t>_n){_a=t;_n=t+_r();}const e=(t-_a)/1e3;if(!_a||e>7)return;
 const c=document.querySelector('canvas').getContext('2d'),s=_w||(_w=_h(_q)),o=Math.max(0,Math.min(1,e*1.6,(7-e)*1.6));
-c.save();c.setTransform(c.canvas.width/1080,0,0,c.canvas.height/1920,0,0);c.globalAlpha=o;c.font='600 30px "Noto Serif",Georgia,serif';
+c.save();c.setTransform(c.canvas.width/1080,0,0,c.canvas.height/1920,0,0);c.globalAlpha=o;c.font='600 30px "Playfair Display",Georgia,serif';
 const w=c.measureText(s).width+60,x=540-w/2,y=322;c.fillStyle='rgba(40,16,6,.88)';c.beginPath();c.roundRect?c.roundRect(x,y,w,54,27):c.rect(x,y,w,54);c.fill();
 c.lineWidth=2;c.strokeStyle='rgba(226,176,79,.9)';c.stroke();c.fillStyle='#ffd98a';c.textAlign='center';c.textBaseline='middle';c.fillText(s,540,y+28);c.restore();}
 const _k='frame',_o=window[_k];window[_k]=function(t){_o(t);try{_g(t);}catch(e){}};})();
