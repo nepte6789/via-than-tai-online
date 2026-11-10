@@ -29,8 +29,9 @@ Chưa live vẫn thử được: dùng **Thử tương tác**, **Đổ người 
 ### Người xem làm được gì
 
 - **Bình luận bất kỳ**: được vào ngồi (tối đa 100 chỗ, chỗ ngồi tự mở rộng 24 → 36 → 64 → 100). Đầy chỗ thì người im lặng lâu nhất mà chưa tặng quà sẽ nhường chỗ.
-- **Bình luận đúng một từ** `nam`, `nữ`, `bà`: đổi hình nhân vật. Câu "Nam mô A Di Đà Phật" không bị hiểu nhầm thành "nam".
-- **Tặng quà**: banner xướng tên, giọng đọc hồi hướng (lấy lời nguyện từ bình luận gần nhất của người đó nếu có), hiệu ứng theo giá trị quà, cộng điểm vào bảng Bảng Tài Lộc.
+- **Bình luận đúng từ khóa** `nam`, `nữ`, `bà`, `ông`, `bé trai`, `bé gái`: đổi nhân vật với áo dài, khăn đóng và trang phục lễ hội. Hỗ trợ cả từ khóa không dấu; các câu bình luận dài không bị nhận nhầm.
+- **Bình luận `xin quẻ`**: nhận một trong tám quẻ tài lộc, gồm câu thơ, lời chúc và lời nhắc thực tế. Mỗi khách xin lại sau 15 giây. Quẻ mang ý nghĩa văn hóa, giải trí.
+- **Tặng quà**: banner xướng tên, giọng đọc lời chúc (lấy lời chúc từ bình luận gần nhất của người đó nếu có), hiệu ứng theo giá trị quà, cộng điểm vào Bảng Tài Lộc.
 - **Thả tim**: tim bay trên đầu nhân vật.
 
 ## Bảo mật
@@ -86,3 +87,9 @@ Cảnh điện Thần Tài đỏ–vàng và các biểu tượng đồng vàng,
 - Bấm **Bật nhạc tài lộc** trên overlay để phát bản hòa tấu ngũ cung vui tươi, được tổng hợp tại trình duyệt trong `assets/prosperity-music.js`, không cần tải MP3. Nhạc tự giảm âm khi đọc lời chúc; công tắc Nhạc nền bật/tắt nhạc. Không còn ba vị sư cố định, chuông hay mõ.
 - Trong bảng điều khiển, chọn **Đổi một khách mỗi (giây)** (15–3600, mặc định 90), số bot và nhịp tương tác rồi bật bot. Mỗi chu kỳ thay một khách mô phỏng, không thay khách TikTok thật. Tên bot không có hậu tố; bot xin lời chúc và nhận tối đa 3 điểm lộc mỗi khách.
 - Bảng tài lộc tính độc lập với chỗ ngồi: giữ nguyên điểm khi bot đổi hoặc tắt, và khi tải lại overlay. Điểm giữ trong phiên server; khởi động lại server sẽ bắt đầu phiên mới. Quà TikTok thật giữ nguyên số điểm, không bị giới hạn như bot.
+
+### Giao diện ngọc bích và đồng hồ Việt Nam
+
+Overlay, web tĩnh và bảng điều khiển dùng chung bảng màu ngọc bích – đỏ son – vàng ấm trong `assets/prosperity-theme.css`. Sáu nhân vật SVG mới nằm trong `assets/characters/`, không dùng y phục tu hành. Đồng hồ trên overlay là giờ hiện tại ở `Asia/Ho_Chi_Minh` (UTC+7), không phải thời lượng live.
+
+Bảng điều khiển có nút **Xin quẻ tài lộc** để thử tương tác; bản web tĩnh có nút cùng tên sau khi vào sảnh. Dữ liệu tám quẻ dùng chung trong `assets/fortunes.js`. Bảng điểm phiên và chức năng đổi bot vẫn hoạt động như trước.

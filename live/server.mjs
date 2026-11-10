@@ -5,6 +5,7 @@
 //
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
+import '../assets/fortunes.js';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,16 +48,16 @@ function capacity(){ if (settings.seatMode !== 'auto') return +settings.seatMode
 /* skins: sprites that exist in /assets. Walking strips exist for man / woman / granny. */
 // A comment changes the outfit only when it IS the keyword (≤ 3 words), so "Cung chúc phát tài, vạn sự hanh thông" never reads as "nam".
 const SKIN_WORDS = [
-  ['granny', ['bà','ba','áo nâu','ao nau','cụ','cu']],
-  ['woman', ['nữ','nu','chị','chi','gái','gai']], ['man', ['nam','anh','trai']],
+  ['man',['nam']], ['woman',['nữ','nu']], ['grandpa',['ông','ong']], ['granny',['bà','ba']],
+  ['boy',['bé trai','be trai']], ['girl',['bé gái','be gai']],
 ];
 function skinFromText(t){
   const w = String(t).toLowerCase().normalize('NFC').replace(/[^\p{L}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
   if (!w || w.split(' ').length > 3) return null;
-  for (const [skin, words] of SKIN_WORDS) if (words.some(k => w === k || w.startsWith(k + ' '))) return skin;
+  for (const [skin, words] of SKIN_WORDS) if (words.some(k => w === k)) return skin;
   return null;
 }
-const DEFAULT_SKINS = ['man', 'woman', 'woman', 'man', 'granny'];
+const DEFAULT_SKINS = ['man','woman','grandpa','granny','boy','girl'];
 
 function pub(v){ return { id:v.id, name:v.name, skin:v.skin, avatar:v.avatar||'', coins:v.coins, demo:!!v.demo }; }
 function snapshot(){ return { t:'state', settings, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
@@ -85,6 +86,15 @@ function onChat(id, name, text, avatar){
   if (!isNew && want && want !== v.skin){ v.skin = want; broadcast({ t:'skin', id, skin: want }); }
   v.lastText = text; v.lastTextAt = Date.now();
   broadcast({ t:'chat', id, name: v.name, text });
+  if (/^xin qu[eẻ]$/u.test(text.toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim())) drawFortune(v);
+}
+
+function drawFortune(v){
+  if(v.lastFortuneAt && Date.now()-v.lastFortuneAt<15000)return;
+  v.lastFortuneAt=Date.now();
+  const fortune=globalThis.ProsperityFortunes[Math.floor(Math.random()*globalThis.ProsperityFortunes.length)];
+  broadcast({t:'fortune',id:v.id,name:v.name,fortune});
+  say(`${spoken(v.name)} nhận quẻ ${fortune.number}, ${fortune.title}. ${fortune.wish}`,{tag:'fortune',id:v.id});
 }
 
 function onGift(id, name, giftName, count, diamonds, avatar){
@@ -191,7 +201,7 @@ function fillDemo(n){
   const have = [...viewers.values()].filter(v => v.demo).length;
   for (let i = have; i < n && viewers.size < 100; i++){
     const name = DEMO_NAMES[i % DEMO_NAMES.length] + (i >= DEMO_NAMES.length ? ' ' + (Math.floor(i / DEMO_NAMES.length) + 1) : '');
-    seat('demo_' + i, name, { demo: true, skin: ['man','woman','granny'][i % 3] });
+    seat('demo_' + i, name, { demo: true, skin: DEFAULT_SKINS[i % DEFAULT_SKINS.length] });
   }
 }
 function clearSeats(){ viewers.clear(); broadcast(snapshot()); addLog('Đã làm trống chỗ ngồi'); }

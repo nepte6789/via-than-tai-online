@@ -90,6 +90,7 @@ input::placeholder{color:#7d6a52}
 #board{top:53%;min-width:130px;font-size:10px}#board h3{font-size:10px}#feed{bottom:145px}#gate .gate-emblem{height:92px;width:100px;margin:-4px 0 -6px}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}body{margin:0;font-size:14px}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/prosperity-theme.css">
 </head>
 <body>
 
@@ -111,6 +112,7 @@ input::placeholder{color:#7d6a52}
     <span class="row">
       <button class="btn" id="nextTrack" hidden title="Bài kế tiếp"><span id="nowPlaying">♪</span> ›</button>
       <button class="btn" id="mute" hidden aria-pressed="false">Tắt nhạc</button>
+      <button class="btn" id="fortuneButton" hidden>Xin quẻ tài lộc</button>
       <button class="btn" id="leave" hidden>Rời</button>
     </span>
   </div>
@@ -123,9 +125,12 @@ input::placeholder{color:#7d6a52}
       <input id="dharma" name="dharma" maxlength="20" autocomplete="nickname" placeholder="Ví dụ: Minh Anh, Ngọc Hà…" required>
       <label>Y phục</label>
       <div class="seg" id="skin">
-        <button type="button" data-skin="man" aria-pressed="true">Khách nam</button>
-        <button type="button" data-skin="woman" aria-pressed="false">Khách nữ</button>
-        <button type="button" data-skin="granny" aria-pressed="false">Khách lớn tuổi</button>
+        <button type="button" data-skin="man" aria-pressed="true">Nam</button>
+        <button type="button" data-skin="woman" aria-pressed="false">Nữ</button>
+        <button type="button" data-skin="granny" aria-pressed="false">Bà</button>
+        <button type="button" data-skin="grandpa" aria-pressed="false">Ông</button>
+        <button type="button" data-skin="boy" aria-pressed="false">Bé trai</button>
+        <button type="button" data-skin="girl" aria-pressed="false">Bé gái</button>
       </div>
       <div class="row">
         <button type="submit" class="btn primary">Vào điện đón lộc ✦</button>
@@ -141,6 +146,7 @@ input::placeholder{color:#7d6a52}
   </div>
 </div></div>
 
+<script src="assets/fortunes.js"></script>
 <script src="assets/prosperity-music.js"></script>
 <script>
 /* ==========================================================
@@ -152,8 +158,7 @@ const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const A = {};   // loaded images
 const ASSETS = {
   hall:'assets/than-tai-hall.svg',
-  monk:'assets/c_monk.png', nun:'assets/c_nun.png', granny:'assets/c_granny.png', man:'assets/c_man.png', woman:'assets/c_woman.png', child:'assets/c_child.png',
-  anim_man:'assets/anim_man.png', anim_woman:'assets/anim_woman.png', anim_granny:'assets/anim_granny.png',
+  man:'assets/characters/man.svg',woman:'assets/characters/woman.svg',grandpa:'assets/characters/grandpa.svg',granny:'assets/characters/granny.svg',boy:'assets/characters/boy.svg',girl:'assets/characters/girl.svg',
   lotus:'assets/loc-vang.svg', halo:'assets/fx_halo.png', bell:'assets/tui-loc.svg', incense:'assets/fx_incense.png', petal:'assets/dong-tien.svg', mo:'assets/fx_mo.png', banner:'assets/fx_banner.png', scroll:'assets/fx_scroll.png',
 };
 let loaded = 0; const total = Object.keys(ASSETS).length;
@@ -161,8 +166,8 @@ for (const [k,src] of Object.entries(ASSETS)) { const im = new Image(); im.onloa
 
 /* ---- walk / sit-down sprite strips (8 frames: 0-3 walk from behind, 4-7 sitting down onto the cushion) ----
    seatH = height of the seated frame incl. cushion, used to match the static seated sprites (260px). */
-const ANIM = { man:{fw:212,fh:300,seatH:210}, woman:{fw:212,fh:300,seatH:220}, granny:{fw:195,fh:300,seatH:222} };
-const hasAnim = k => ANIM[k] && A['anim_'+k] && A['anim_'+k].naturalWidth > 0;
+const ANIM = {};
+const hasAnim = () => false;
 
 /* ---- floor layout: the painting's cushions sit on a perspective floor from y≈1180 (back) to y≈1850 (front).
    We define our own seat grid in that trapezoid so sprites scale with depth. ---- */
@@ -186,7 +191,7 @@ const DOOR = { x: SW/2, y: SH + 120 };         // walk in from below the frame
 
 /* ---- visitors ---- */
 const visitors = [], fx = [], floaters = [];
-const SKINS = ['man','woman','granny'];
+const SKINS = ['man','woman','grandpa','granny','boy','girl'];
 function freeSeat(){ return seats.find(s=>!s.taken) || null; }
 function addVisitor(name, skin, instant, isMe){
   const seat = freeSeat(); if(!seat) return null;
@@ -289,13 +294,19 @@ form.addEventListener('submit', e=>{
   audioStart();
   me = addVisitor(name, mySkin, false, true);
   gate.hidden=true; document.getElementById('me').hidden=false; document.getElementById('meName').textContent=name;
-  for (const id of ['mute','leave','gifts']) document.getElementById(id).hidden=false;
+  for (const id of ['mute','leave','gifts','fortuneButton']) document.getElementById(id).hidden=false;
   say(name,' đã tham gia'); showToast('Hoan nghênh '+name+' tham gia Vía Thần Tài'); ttsSpeak('Hoan nghênh '+name+' tham gia Vía Thần Tài');
 });
 document.getElementById('gifts').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||!me) return; donate(me, +b.dataset.coins, b.dataset.fx, SUTRA[Math.floor(Math.random()*SUTRA.length)]); });
+let lastFortune=0;
+document.getElementById('fortuneButton').addEventListener('click',()=>{
+  if(!me||Date.now()-lastFortune<15000)return;lastFortune=Date.now();
+  const f=ProsperityFortunes[Math.floor(Math.random()*ProsperityFortunes.length)];
+  say(me.name,` xin quẻ ${f.number} · ${f.title}. ${f.wish}`);showToast(`Quẻ ${f.number} · ${f.title} — ${f.advice}`);ttsSpeak(`${me.name}. ${f.wish}`);
+});
 document.getElementById('nextTrack').addEventListener('click', ()=>{ if(AC) playTrack(trackIdx+1); });
 document.getElementById('mute').addEventListener('click', e=>{ muted=!muted; if(master) master.gain.value=muted?0:.8; e.currentTarget.textContent=muted?'Bật nhạc':'Tắt nhạc'; e.currentTarget.setAttribute('aria-pressed',muted); });
-document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack']) document.getElementById(id).hidden=true; for (const m of musicEls){ try{m.el.pause();}catch(e){} } musicEls=[]; if(festiveMusic){festiveMusic.stop();festiveMusic=null;} if (AC){ AC.close(); AC=null; } clearInterval(mokTimer); clearInterval(bellTimer); renderBoard(); });
+document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack','fortuneButton']) document.getElementById(id).hidden=true; for (const m of musicEls){ try{m.el.pause();}catch(e){} } musicEls=[]; if(festiveMusic){festiveMusic.stop();festiveMusic=null;} if (AC){ AC.close(); AC=null; } clearInterval(mokTimer); clearInterval(bellTimer); renderBoard(); });
 canvas.addEventListener('pointerdown', ()=>{ if(!me||me.state!=='sit') return; const s=SUTRA[Math.floor(Math.random()*SUTRA.length)]; say(me.name,' '+s); me.bow=1; floaters.push({x:me.seat.x,y:me.seat.y-80,vx:0,vy:-70,t:0,life:2,s:.14}); });
 // demo activity: random comments and small gifts from the crowd
 setInterval(()=>{ if (visitors.length<2) return; const v=visitors[Math.floor(Math.random()*visitors.length)]; if (v===me) return;
@@ -365,7 +376,7 @@ function tick(now){
       if (v.flip) ctx.scale(-1,1);
       ctx.drawImage(A['anim_'+v.skin], v.frame*a.fw, 0, a.fw, a.fh, -a.fw*k/2, -a.fh*k + breathe, a.fw*k, a.fh*k);
       tagH = (v.state==='sit' ? a.seatH : a.fh*.97) * k;
-    } else { drawSprite(A[v.skin]||A.man, 0, breathe, s*1.05, 1); tagH = 268*s; }
+    } else { drawSprite(A[v.skin]||A.man, 0, breathe, s*1.05, 1); tagH = 320*s; }
     ctx.restore();
     nameTag(v.name, v.x, v.y - tagH - 10*s, s, v.isMe);
   }
