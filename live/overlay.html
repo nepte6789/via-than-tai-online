@@ -73,21 +73,24 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
   </div>
   <div id="guide" class="card ui">
     <span class="card-label">ĐÓN LỘC CÙNG NHAU</span>
-    <div class="guide-step"><i>01</i><span><b>Bình luận bất kỳ</b> để vào sảnh cầu tài lộc</span></div>
+    <div class="guide-step"><i>01</i><span><b>Thả tim hoặc bình luận</b> để vào sảnh cầu tài lộc</span></div>
     <div class="guide-step"><i>02</i><span>Bình luận <b>nam - nữ - bà - ông - bé trai - bé gái</b> để đổi hình</span></div>
-    <div class="guide-step"><i>03</i><span>Bình luận <b>xin vía</b> để xin quẻ tài lộc</span></div>
+    <div class="guide-step"><i>03</i><span>Bình luận <b>xin vía</b> để xin vía tài lộc</span></div>
     <div class="guide-step"><i>04</i><span><b>Tặng quà</b> để xướng tên chúc tài lộc</span></div>
   </div>
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
   <div id="chant" class="ui"><h4>✦ LỜI CHÚC TÀI LỘC ✦</h4><p id="chantText"></p></div>
   <div id="gift" class="ui"><div class="who" id="giftWho"></div><div class="what" id="giftWhat"></div><div class="pray" id="giftPray"></div></div>
-  <section id="fortune" role="status" hidden><button id="fortuneClose" aria-label="Đóng quẻ">×</button><small id="fortuneNumber"></small><h2 id="fortuneTitle"></h2><p id="fortuneWho"></p><p id="fortuneVerse"></p><p id="fortuneAdvice"></p><div class="fortune-note">Quẻ vui đầu năm · Lời chúc mang ý nghĩa văn hóa</div></section>
+  <section id="fortune" role="status" hidden><button id="fortuneClose" aria-label="Đóng vía">×</button><small id="fortuneNumber"></small><h2 id="fortuneTitle"></h2><p id="fortuneWho"></p><p id="fortuneVerse"></p><p id="fortuneAdvice"></p><div class="fortune-note">Vía vui đầu năm · Lời chúc mang ý nghĩa văn hóa</div></section>
   <button id="unmute">♪ Bấm để bật nhạc tài lộc</button>
+  <div id="audioWarning" role="status" style="position:absolute;left:30px;right:30px;bottom:74px;z-index:8;text-align:center;font:20px var(--body);color:#ffe3a0;background:#420812dd;border-radius:10px"></div>
   <div id="conn">đang kết nối…</div>
 </div></div>
 
 <script src="/assets/festival-art.js"></script>
 <script src="/assets/prosperity-music.js"></script>
+<script src="/assets/voice-queue.js"></script>
+<script src="/assets/live-socket.js"></script>
 <script>
 /* ======================= stage fit ======================= */
 const stage = document.getElementById('stage');
@@ -167,7 +170,7 @@ function showChant(text){ document.getElementById("fortune").hidden=true; docume
 
 let fortuneHide=null;
 function showFortune(m){
-  document.getElementById('fortuneNumber').textContent='QUẺ TÀI LỘC · '+String(m.fortune.number).padStart(2,'0');
+  document.getElementById('fortuneNumber').textContent='VÍA TÀI LỘC · '+String(m.fortune.number).padStart(2,'0');
   document.getElementById('fortuneTitle').textContent=m.fortune.title;
   document.getElementById('fortuneWho').textContent='Gửi '+m.name+' · '+m.fortune.wish;
   document.getElementById('fortuneVerse').textContent=m.fortune.verse;
@@ -190,16 +193,14 @@ function startAudio(){
   music=new ProsperityMusic(AC,musicGain);music.start();
 }
 function duck(on){if(!musicGain)return;musicGain.gain.cancelScheduledValues(AC.currentTime);musicGain.gain.setTargetAtTime(!settings.music?0:on?.13:.5,AC.currentTime,.15);}
-// server-made voice lines play one after another
-const ttsQ=[]; let ttsPlaying=false;
-function queueTTS(url, onStart){ ttsQ.push({url,onStart}); playTTS(); }
+// Keep announcements until the user unlocks audio, then play every item in order.
+const ttsQ=[];let voicePlayer=null;
+function queueTTS(message){ttsQ.push(message);playTTS();}
 function playTTS(){
-  if (ttsPlaying || !ttsQ.length || !AC) return; ttsPlaying=true;
-  const {url,onStart}=ttsQ.shift(); const el=new Audio(url); const src=AC.createMediaElementSource(el); const g=AC.createGain(); g.gain.value=1.25; src.connect(g); g.connect(master);
-  el.onplay=()=>{ duck(true); onStart&&onStart(); }; el.onended=el.onerror=()=>{ duck(false); ttsPlaying=false; setTimeout(playTTS,350); };
-  el.play().catch(()=>{ ttsPlaying=false; });
+  if(!AC||AC.state!=='running')return;
+  if(!voicePlayer)voicePlayer=new FestivalVoiceQueue({context:AC,output:master,duck,onWarning:message=>{document.getElementById('audioWarning').textContent=message;}});
+  while(ttsQ.length)voicePlayer.enqueue(ttsQ.shift());
 }
-
 /* ======================= effects ======================= */
 const fx=[], petals=[];
 function giftFx(v, tier){
@@ -214,12 +215,7 @@ function hearts(v,n){ for (let i=0;i<Math.min(6,n);i++) petals.push({x:v.x+(Math
 /* ======================= server link ======================= */
 let ws=null;
 function connect(){
-  ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws?role=overlay`);
-  const st=document.getElementById('conn');
-  ws.onopen=()=>{ st.textContent=''; };
-  ws.onclose=()=>{ st.textContent='mất kết nối server… đang thử lại'; setTimeout(connect,2000); };
-  ws.onmessage=e=>{
-    const m=JSON.parse(e.data);
+  ws=new LiveSocket('overlay',m=>{
     switch(m.t){
       case 'state':
         Object.assign(settings,m.settings); applySettings(); startedAt=m.startedAt; leaderboard=m.leaderboard||[];
@@ -232,16 +228,16 @@ function connect(){
       case 'chat': { const v=visitors.get(m.id); if(v){ v.bubble={text:m.text, until:performance.now()+6000}; v.bow=.6; } } break;
       case 'gift': { const v=visitors.get(m.id); if(v){ v.coins=m.total; giftFx(v,m.tier); } renderMerit(); showGift(m); } break;
       case 'like': { const v=visitors.get(m.id); if(v) hearts(v,m.n); } break;
-      case 'tts': queueTTS(m.url); break;
+      case 'tts': queueTTS(m); break;
       case 'chant': showChant(m.text); break;
       case 'fortune': showFortune(m); break;
     }
-  };
+  },status=>{document.getElementById('conn').textContent=status==='connected'?'':'Đang kết nối lại server…';});
 }
 function applySettings(){
   document.getElementById('title').textContent=settings.title||'Vía Thần Tài Online';
   document.getElementById('subtitle').textContent=settings.subtitle||'Cung chúc phát tài · Vạn sự hanh thông';
-  duck(ttsPlaying);
+  duck(!!voicePlayer?.busy);
 }
 connect();
 

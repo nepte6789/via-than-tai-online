@@ -112,7 +112,7 @@ input::placeholder{color:#7d6a52}
     <span class="row">
       <button class="btn" id="nextTrack" hidden title="Bài kế tiếp"><span id="nowPlaying">♪</span> ›</button>
       <button class="btn" id="mute" hidden aria-pressed="false">Tắt nhạc</button>
-      <button class="btn" id="fortuneButton" hidden>Xin quẻ tài lộc</button>
+      <button class="btn" id="fortuneButton" hidden>Xin vía tài lộc</button>
       <button class="btn" id="leave" hidden>Rời</button>
     </span>
   </div>
@@ -246,7 +246,7 @@ function ttsSpeak(text){
     if(!('speechSynthesis' in window)) return;
     if(!viVoice){ pickViVoice(); }
     if(!viVoice){ if(!ttsWarned){ ttsWarned=true; say('Hệ thống',' Máy này chưa có giọng tiếng Việt nên không đọc thành tiếng.'); } return; }
-    speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.voice=viVoice; u.lang=viVoice.lang; u.rate=.95; u.pitch=.95; u.onstart=()=>setDuck(true); u.onend=u.onerror=()=>setDuck(false); speechSynthesis.speak(u);
+    const u=new SpeechSynthesisUtterance(text); u.voice=viVoice; u.lang=viVoice.lang; u.rate=.95; u.pitch=.95; u.onstart=()=>setDuck(true); u.onend=u.onerror=()=>setDuck(false); speechSynthesis.speak(u);
   } catch(e){}
 }
 
@@ -299,7 +299,7 @@ let lastFortune=0;
 document.getElementById('fortuneButton').addEventListener('click',()=>{
   if(!me||Date.now()-lastFortune<15000)return;lastFortune=Date.now();
   const f=ProsperityFortunes[Math.floor(Math.random()*ProsperityFortunes.length)];
-  say(me.name,` xin quẻ ${f.number} · ${f.title}. ${f.wish}`);showToast(`Quẻ ${f.number} · ${f.title} — ${f.advice}`);ttsSpeak(`${me.name}. ${f.wish}`);
+  say(me.name,` xin vía ${f.number} · ${f.title}. ${f.wish}`);showToast(`Vía ${f.number} · ${f.title} — ${f.advice}`);ttsSpeak(`${me.name} xin vía tài lộc. ${f.title}. ${f.verse} ${f.advice} ${f.wish}`);
 });
 document.getElementById('nextTrack').addEventListener('click', ()=>{ if(AC) playTrack(trackIdx+1); });
 document.getElementById('mute').addEventListener('click', e=>{ muted=!muted; if(master) master.gain.value=muted?0:.8; e.currentTarget.textContent=muted?'Bật nhạc':'Tắt nhạc'; e.currentTarget.setAttribute('aria-pressed',muted); });
