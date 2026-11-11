@@ -59,6 +59,7 @@ button.red{background:var(--red);border-color:#b84a33}
     <h2>1 · Kết nối TikTok LIVE</h2>
     <label for="uid">Username kênh đang live</label>
     <div class="row"><input id="uid" placeholder="@tenkenhcuaban" autocomplete="off"><button class="primary" id="btnConnect">Kết nối</button><button id="btnDisconnect">Ngắt</button></div>
+    <p id="autoConnectStatus" class="hint" style="font-weight:700;color:#ffe1a0;overflow-wrap:anywhere" role="status">Chưa hẹn tự kết nối.</p>
     <p class="hint">Chỉ đọc sự kiện công khai của phòng live (bình luận, quà, tim). Không cần mật khẩu hay cookie TikTok. Phải bật LIVE trước rồi mới kết nối.</p>
     <button class="gold" id="btnOverlay">Mở màn hình overlay 9:16</button>
     <p class="hint">Trong TikTok LIVE Studio: Add source → Window capture → chọn cửa sổ overlay. Bấm "bật âm thanh" một lần trong cửa sổ đó.</p>
@@ -89,7 +90,7 @@ button.red{background:var(--red);border-color:#b84a33}
       <label>Nhịp<select id="botPace"><option value="slow" selected>Chậm</option><option value="mid">Vừa</option><option value="fast">Nhanh</option></select></label>
       <button id="btnBots">Bật bot</button>
     </div>
-    <p class="hint">Bot mô phỏng tự xin lời chúc, nhận tối đa 3 điểm lộc mỗi khách. Tự thay khách theo thời gian đã chọn; bảng tài lộc giữ điểm trong phiên, kể cả khi khách rời đi.</p>
+    <p class="hint">Bot mô phỏng tự xin lời chúc, không giới hạn tổng điểm; quà lớn xuất hiện với tỷ lệ rất thấp. Tự thay khách theo thời gian đã chọn; bảng tài lộc giữ điểm trong phiên, kể cả khi khách rời đi.</p>
   </section>
 
   <section class="card">
@@ -143,6 +144,15 @@ function renderPeople(){
   list.forEach((p,i)=>{ const tr=document.createElement('tr'); const a=document.createElement('td'); a.textContent=`${String(i+1).padStart(2,'0')}  ${p.name}`; const b=document.createElement('td'); b.textContent=p.coins? p.coins+' ✧':''; tr.append(a,b); tb.append(tr); });
   $('cnt').textContent = `${people.size} người`;
 }
+let autoConnectState=null;
+function showAutoConnect(state){
+  if(state)autoConnectState=state;const a=autoConnectState;if(!a)return;
+  if(state&&a.target&&document.activeElement!==$('uid'))$('uid').value='@'+a.target;
+  const seconds=a.nextAttemptAt?Math.max(0,Math.ceil((a.nextAttemptAt-Date.now())/1000)):0;
+  const wait=`${Math.floor(seconds/60)} phút ${seconds%60} giây`;
+  $('autoConnectStatus').textContent=!a.enabled?'Tự kết nối đã dừng.':a.phase==='connected'?`Đã kết nối @${a.target}. Tự kiểm tra lại mỗi 2 phút.`:a.phase==='connecting'?`Đang kết nối @${a.target} · lần ${a.attempts}`:a.phase==='waiting'?`Đang chờ hoàn tất lần kết nối trước để chuyển sang @${a.target}`:`Chưa kết nối @${a.target}. ${a.phase==='retry'?'Thử lại':'Tự kết nối'} sau ${wait}.`+(a.error?' '+a.error:'');
+}
+setInterval(()=>showAutoConnect(),1000);
 function fillBots(b){if(!b)return;$('btnBots').textContent=b.on?'Tắt bot':'Bật bot';$('botN').value=b.n;$('botPace').value=b.pace;$('botRotate').value=b.rotateSeconds;}
 function renderLiveEvents(e){if(!e)return;$('liveEvents').textContent=`Bình luận TikTok nhận được: ${e.chatCount} · Thả tim: ${e.likeCount}`+(e.lastChatName?` · Gần nhất: ${e.lastChatName}`:'')+(e.missingUser?` · Thiếu ID: ${e.missingUser}`:'');}
 function setTT(st){
@@ -151,7 +161,8 @@ function setTT(st){
 }
 function connect(){
   ws=new LiveSocket('control',m=>{
-    if (m.t==='state'){ renderLiveEvents(m.liveEvents); fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
+    if (m.t==='state'){ showAutoConnect(m.autoConnect); renderLiveEvents(m.liveEvents); fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
+    else if(m.t==='autoConnect')showAutoConnect(m);
     else if(m.t==='liveEvents')renderLiveEvents(m);
     else if (m.t==='logs'){ $('log').textContent=''; m.lines.forEach(logLine); }
     else if (m.t==='log') logLine(m.line);

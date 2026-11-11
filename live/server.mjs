@@ -6,6 +6,9 @@
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
 import '../assets/fortunes.js';
+import {createInterface} from 'node:readline';
+import {AutoConnect,channelName} from './auto-connect.mjs';
+import {pickBotGift} from './bot-gifts.mjs';
 import '../assets/blessings.js';
 import {isXinVia,readChatText} from './chat-command.mjs';
 import { resolveLiveUser } from './live-user.mjs';
@@ -45,6 +48,7 @@ function publishMerit(){broadcast({t:'leaderboard',entries:leaderboard()});}
 const userAliases=new Map();
 let liveEvents={chatCount:0,likeCount:0,lastChatName:'',lastChatAt:0,missingUser:0};
 const startedAt = Date.now();
+let connectionVersion=0;
 let tiktok = null, tiktokState = { status: 'idle', uniqueId: '', error: '' };
 const log = [];
 function addLog(s){ const line = `[${new Date().toLocaleTimeString('vi-VN')}] ${s}`; log.push(line); if (log.length > 300) log.shift(); broadcast({ t:'log', line }, 'control'); console.log(line); }
@@ -67,7 +71,7 @@ function skinFromText(t){
 const DEFAULT_SKINS = ['man','woman','grandpa','granny','boy','girl'];
 
 function pub(v){ return { id:v.id, name:v.name, skin:v.skin, avatar:v.avatar||'', coins:v.coins, demo:!!v.demo }; }
-function snapshot(){ return { t:'state', settings, liveEvents, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
+function snapshot(){ return { t:'state', settings, autoConnect:autoConnect?.state, liveEvents, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
 
 function seat(id, name, opts = {}){
   if(id===undefined||id===null||!String(id).trim())return {v:null,isNew:false};
@@ -120,7 +124,7 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   const { v } = seat(id, name, { avatar });
   if (!v) return;
   const amount = Math.max(1, (diamonds || 1) * (count || 1));
-  const coins = v.demo ? Math.min(amount, Math.max(0, 3-v.coins)) : amount;
+  const coins = amount;
   if (!coins) return;
   v.coins += coins;
   merit.set(id,{id,name:v.name,coins:v.coins,demo:v.demo});
@@ -174,18 +178,22 @@ scheduleChant();
 /* --------------------------------------------------------------- TikTok */
 let TikTokLib = null;
 async function connectTikTok(uniqueId){
-  uniqueId = String(uniqueId || '').trim().replace(/^.*tiktok\.com\/@?/i, '').replace(/^@/, '').replace(/\/.*$/, '');
-  if (!uniqueId) return;
-  await disconnectTikTok();
+  uniqueId=channelName(uniqueId);
+  const version=++connectionVersion,previous=tiktok;tiktok=null;
+  if(previous){try{await previous.disconnect();}catch{}}
+  if(version!==connectionVersion)return;
   liveEvents={chatCount:0,likeCount:0,lastChatName:'',lastChatAt:0,missingUser:0};
   broadcast({t:'liveEvents',...liveEvents},'control');
   tiktokState = { status: 'connecting', uniqueId, error: '' }; broadcast({ t:'tiktok', ...tiktokState });
+  let conn;
   try {
     TikTokLib ||= await import('tiktok-live-connector');
     const { TikTokLiveConnection, WebcastEvent, ControlEvent } = TikTokLib;
-    const conn = new TikTokLiveConnection(uniqueId, buildTikTokConnectionOptions());
+    if(version!==connectionVersion)return;
+    conn = new TikTokLiveConnection(uniqueId, buildTikTokConnectionOptions());
+    tiktok=conn;
     const readUser=data=>resolveLiveUser(data,userAliases);
-    conn.on(WebcastEvent.CHAT,data=>{
+    conn.on(WebcastEvent.CHAT,data=>{if(version!==connectionVersion)return;
       const user=readUser(data);liveEvents.chatCount++;liveEvents.lastChatAt=Date.now();
       liveEvents.lastChatName=user?.name||'Không có ID';if(!user)liveEvents.missingUser++;
       broadcast({t:'liveEvents',...liveEvents},'control');
@@ -193,7 +201,7 @@ async function connectTikTok(uniqueId){
       onChat(user.id,user.name,readChatText(data),user.avatar);
       addLog(`💬 Nhận bình luận TikTok: ${user.name} · ${viewers.has(user.id)?'đã vào sảnh':'sảnh đã đầy khách thật'}`);
     });
-    conn.on(WebcastEvent.GIFT,data=>{
+    conn.on(WebcastEvent.GIFT,data=>{if(version!==connectionVersion)return;
       const user=readUser(data);if(!user)return;
       const type=data.giftDetails?.giftType??data.extendedGiftInfo?.type??data.giftType;
       if(type===1&&!data.repeatEnd)return;
@@ -201,25 +209,39 @@ async function connectTikTok(uniqueId){
       const diamonds=data.giftDetails?.diamondCount??data.extendedGiftInfo?.diamond_count??data.diamondCount??1;
       onGift(user.id,user.name,gift,data.repeatCount||1,diamonds,user.avatar);
     });
-    conn.on(WebcastEvent.MEMBER,data=>{const user=readUser(data);if(settings.joinOnEnter&&user)seat(user.id,user.name,{avatar:user.avatar});});
-    conn.on(WebcastEvent.LIKE,data=>{
+    conn.on(WebcastEvent.MEMBER,data=>{if(version!==connectionVersion)return;const user=readUser(data);if(settings.joinOnEnter&&user)seat(user.id,user.name,{avatar:user.avatar});});
+    conn.on(WebcastEvent.LIKE,data=>{if(version!==connectionVersion)return;
       const user=readUser(data);liveEvents.likeCount++;
       if(user){const {v}=seat(user.id,user.name,{avatar:user.avatar});if(v)broadcast({t:'like',id:user.id,n:data.likeCount||1});}
       broadcast({t:'liveEvents',...liveEvents},'control');
     });
-    conn.on(ControlEvent.DISCONNECTED, () => { tiktokState = { ...tiktokState, status: 'disconnected' }; broadcast({ t:'tiktok', ...tiktokState }); addLog('TikTok: mất kết nối'); });
-    conn.on(ControlEvent.ERROR, e => addLog('TikTok lỗi: ' + (e?.info || e?.message || e)));
+    conn.on(ControlEvent.DISCONNECTED, () => { if(version!==connectionVersion)return; tiktokState = { ...tiktokState, status: 'disconnected' }; broadcast({ t:'tiktok', ...tiktokState }); addLog('TikTok: mất kết nối');autoConnect?.disconnected(); });
+    conn.on(ControlEvent.ERROR,e=>{if(version===connectionVersion)addLog('TikTok lỗi: '+(e?.info||e?.message||e));});
     const st = await conn.connect();
+    if(version!==connectionVersion){try{await conn.disconnect();}catch{}return;}
     tiktok = conn;
     tiktokState = { status: 'connected', uniqueId, error: '', roomId: st?.roomId || '' };
     addLog(`✅ Đã kết nối live @${uniqueId}`);
   } catch (e) {
+    if(version!==connectionVersion)return;
+    if(tiktok===conn)tiktok=null;
+    try{await conn?.disconnect();}catch{}
+    if(version!==connectionVersion)return;
     tiktokState = { status: 'error', uniqueId, error: explainTikTokConnectionError(e) };
     addLog(`❌ Không kết nối được @${uniqueId}: ${tiktokState.error}`);
   }
   broadcast({ t:'tiktok', ...tiktokState });
 }
-async function disconnectTikTok(){ if (tiktok){ try { await tiktok.disconnect(); } catch {} tiktok = null; } tiktokState = { status:'idle', uniqueId:'', error:'' }; broadcast({ t:'tiktok', ...tiktokState }); }
+async function disconnectTikTok(){
+  connectionVersion++;const conn=tiktok;tiktok=null;
+  tiktokState={status:'idle',uniqueId:'',error:''};broadcast({t:'tiktok',...tiktokState});
+  if(conn){try{await conn.disconnect();}catch{}}
+}
+const autoConnect=new AutoConnect({
+  connect:connectTikTok,
+  getStatus:()=>({...tiktokState,status:tiktok?.isConnected===false&&tiktokState.status==='connected'?'disconnected':tiktokState.status}),
+  onState:state=>{broadcast({t:'autoConnect',...state},'control');if(state.phase==='retry')addLog(`Chưa kết nối @${state.target}; sẽ thử lại sau 2 phút`);},
+});
 
 /* ------------------------------------------------------------- test data */
 const DEMO_NAMES = ['Diệu Hạnh','Minh Tâm','Thiện Đức','Huệ An','Tịnh Nhã','Quảng Trí','Chơn Như','Pháp Hỷ','Nguyên Thanh','Tâm Đăng','Diệu Liên','Trí Hải','Phước Lộc','Hạnh Nguyện','Như Ý','Bảo Châu','Thanh Lương','Từ Tâm','An Lạc','Giác Hoa','Tuệ Minh','Liên Hương','Thu Hà','Ngọc Lan','Đức Anh','Hải Đăng','Mai Anh','Phương Thảo','Trung Kiên','Quang Huy','Bảo Ngọc','Diệu Linh'];
@@ -235,8 +257,8 @@ function clearSeats(){ viewers.clear(); broadcast(snapshot()); addLog('Đã làm
 /* ------------------------------------------------------------- control */
 function onControl(m){
   switch (m.cmd){
-    case 'connect': connectTikTok(m.uniqueId); break;
-    case 'disconnect': disconnectTikTok(); addLog('Đã ngắt kết nối TikTok'); break;
+    case 'connect': autoConnect.setTarget(m.uniqueId,{immediate:true}); break;
+    case 'disconnect': autoConnect.stop();disconnectTikTok(); addLog('Đã ngắt kết nối TikTok'); break;
     case 'like': {const name=String(m.name||'Khách').slice(0,18),id='sim_'+name;const {v}=seat(id,name);if(v)broadcast({t:'like',id,n:1});break;}
     case 'chat': { const n = String(m.name || 'Khách').slice(0, 18); onChat('sim_' + n, n, String(m.text || 'Cung chúc phát tài, vạn sự hanh thông').slice(0, 120)); break; }
     case 'gift': { const n = String(m.name || 'Khách').slice(0, 18); onGift('sim_' + n, n, String(m.gift || 'Hoa hồng').slice(0, 30), clamp(m.count, 1, 99), clamp(m.diamonds, 1, 50000)); break; }
@@ -298,7 +320,8 @@ function setBots(on,n,pace,rotateSeconds){
       const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));if(!bots.length)return;
       const v=bots[Math.floor(Math.random()*bots.length)],request=BOT_LINES[Math.floor(Math.random()*BOT_LINES.length)];
       onChat(v.id,v.name,request);
-      if(Math.random()<.3&&v.coins<3)onGift(v.id,v.name,'Lộc may mắn',1,1);
+      const gift=pickBotGift();
+      if(gift)onGift(v.id,v.name,gift.name,1,gift.diamonds);
       else broadcast({t:'like',id:v.id,n:1});
     },{slow:6000,mid:4000,fast:2500}[botOptions.pace]);
     rotationTimer=setInterval(rotateBot,botOptions.rotateSeconds*1000);
@@ -316,7 +339,7 @@ function setBots(on,n,pace,rotateSeconds){
 //    same browser cannot send control commands
 //  • static files: only /assets and /live, no dot-files, no node_modules, no server source, no path escapes
 //  • no TikTok password, cookie or session is ever used or stored; only public room events are read
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 const MIME = { '.html':'text/html; charset=utf-8', '.js':'text/javascript', '.css':'text/css', '.json':'application/json',
   '.woff':'font/woff', '.woff2':'font/woff2', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.mp3':'audio/mpeg', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
 const ALLOWED_HOSTS = new Set((process.env.ALLOWED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));
@@ -367,4 +390,15 @@ wss.on('connection', (ws, req) => {
 const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;if(ws.readyState===1)ws.ping();}},20000);
 wss.on('close',()=>clearInterval(heartbeat));
 setBots(true,12,'slow',90);
-server.listen(PORT, HOST, () => addLog(`Server chạy tại http://localhost:${PORT}  ·  Bảng điều khiển: http://localhost:${PORT}/live/control.html  ·  Overlay: http://localhost:${PORT}/live/overlay.html`));
+server.listen(PORT,HOST,()=>{
+  addLog(`Server chạy tại http://localhost:${PORT} · Bảng điều khiển: http://localhost:${PORT}/live/control.html`);
+  if(process.env.TIKTOK_CHANNEL){
+    try{autoConnect.setTarget(process.env.TIKTOK_CHANNEL);addLog('Đã hẹn kết nối sau 5 phút');}catch(error){addLog(error.message);}
+  }else if(process.stdin.isTTY){
+    const terminal=createInterface({input:process.stdin,output:process.stdout});
+    terminal.question('Nhập link kênh TikTok hoặc @username (Enter để nhập trên web): ',answer=>{
+      terminal.close();if(!answer.trim())return;
+      try{autoConnect.setTarget(answer);addLog('Đã hẹn kết nối sau 5 phút; nếu chưa được sẽ thử lại mỗi 2 phút');}catch(error){addLog(error.message);}
+    });
+  }else addLog('Nhập kênh trên bảng điều khiển, hoặc đặt TIKTOK_CHANNEL để hẹn kết nối sau 5 phút.');
+});
