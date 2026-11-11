@@ -85,7 +85,7 @@ Cảnh điện Thần Tài đỏ–vàng và các biểu tượng đồng vàng,
 ### Nhạc tài lộc và bot tự thay khách
 
 - Bấm **Bật nhạc tài lộc** trên overlay để phát bản hòa tấu ngũ cung vui tươi, được tổng hợp tại trình duyệt trong `assets/prosperity-music.js`, không cần tải MP3. Nhạc tự giảm âm khi đọc lời chúc; công tắc Nhạc nền bật/tắt nhạc. Không còn ba vị sư cố định, chuông hay mõ.
-- Trong bảng điều khiển, chọn **Đổi một khách mỗi (giây)** (15–3600, mặc định 90), số bot và nhịp tương tác rồi bật bot. Mỗi chu kỳ thay một khách mô phỏng, không thay khách TikTok thật. Tên bot không có hậu tố; bot xin lời chúc và nhận tối đa 3 điểm lộc mỗi khách.
+- Trong bảng điều khiển, chọn **Đổi một khách mỗi (giây)** (15–3600, mặc định 90), số bot và nhịp tương tác rồi bật bot. Mỗi chu kỳ thay một khách mô phỏng, không thay khách TikTok thật. Tên bot không có hậu tố; bot xin lời chúc và cộng điểm không giới hạn, với quà lớn hiếm.
 - Bảng tài lộc tính độc lập với chỗ ngồi: giữ nguyên điểm khi bot đổi hoặc tắt, và khi tải lại overlay. Điểm giữ trong phiên server; khởi động lại server sẽ bắt đầu phiên mới. Quà TikTok thật giữ nguyên số điểm, không bị giới hạn như bot.
 
 ### Giao diện ngọc bích và đồng hồ Việt Nam
@@ -164,3 +164,15 @@ Log ghi rõ `Xin vía: [tên] nhận vía [số] · đã xếp hàng đọc`. Y�
 Server tự bật 12 bot ở nhịp chậm khi khởi động; vẫn có thể tắt hoặc đổi số lượng/nhịp trong bảng điều khiển. Lời chúc tự động mặc định mỗi 2 phút, dùng 24 nội dung khác nhau trong `assets/blessings.js`, lần lượt đọc hết trước khi quay lại.
 
 Hall mới là `assets/artwork/hall-calm.webp`, giữ Thần Tài, hai cột đỏ, hai đèn lồng và cây lộc nhỏ; bỏ cột rồng dày, cụm hoa/vàng lớn, hoa văn sàn và các props trang trí chồng lên hall. Web và overlay cùng dùng ảnh mới. Banner quà/lời chúc chuyển lên chân tượng, giữa hai bảng bên; thẻ vía dài vẫn có khu vực riêng. Hướng dẫn bên trái được thay bằng bốn dòng nội dung mới.
+
+### Hẹn và tự thử kết nối kênh
+
+Sau `cd live && npm start`, terminal tương tác sẽ hỏi link kênh TikTok hoặc `@username`. Server vẫn phục vụ `http://localhost:3000/` ngay. Nhập kênh xong sẽ hẹn lần kết nối đầu sau **5 phút**. Trang tự điền kênh và hiển thị thời gian còn lại. Nếu chưa thành công hoặc sau này bị mất kết nối, tự thử lại sau **2 phút**. Khi phiên đang kết nối tốt, chỉ kiểm tra trạng thái, không mở thêm kết nối. Lịch chạy ở server, không phụ thuộc việc mở/tải lại trình duyệt.
+
+Nút **Kết nối** trên web bắt đầu ngay với kênh đang nhập; nút **Ngắt** hủy lịch tự thử và ngắt cả kết nối đang chờ. Có thể đặt `TIKTOK_CHANNEL=https://www.tiktok.com/@tenkenh/live` trong môi trường để dùng khi chạy không có terminal tương tác. Không có biến này và không có terminal thì nhập kênh trên web. Link rút gọn không chứa `@username` cần đổi sang link kênh đầy đủ. Kênh chỉ giữ trong phiên, không lưu thông tin tài khoản vào repo.
+
+### Điểm bot không có trần
+
+Bỏ trần 3 điểm. Bot có 8% cơ hội tặng quà trong mỗi nhịp tương tác; trong các lần tặng, 90% là 1 điểm, 8% là 3 điểm, 1,8% là 10 điểm và chỉ 0,2% là 99 điểm. Tổng điểm tiếp tục cộng dồn và bảng vẫn giữ lịch sử khi thay bot. Top 5 trên bảng vẫn giữ nguyên cách hiển thị. Đây là quà mô phỏng trong sảnh, không phải quà gửi ra TikTok.
+
+Server mặc định chỉ lắng nghe `127.0.0.1` cho trang điều khiển localhost. Muốn dùng qua mạng ngoài phải cấu hình `HOST`/`ALLOWED_HOSTS` có chủ đích.

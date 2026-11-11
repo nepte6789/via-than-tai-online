@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { EventEmitter } from 'node:events';
 import { resolveLiveUser } from '../live-user.mjs';
 import {isXinVia,readChatText} from '../chat-command.mjs';
+import {AutoConnect,channelName} from '../auto-connect.mjs';
+import {pickBotGift} from '../bot-gifts.mjs';
 
 test('like enters hall, xin vía is announced, and random bot timers stop cleanly',async()=>{
  let code=fs.readFileSync(new URL('../server.mjs',import.meta.url),'utf8');
@@ -13,7 +15,7 @@ test('like enters hall, xin vía is announced, and random bot timers stop cleanl
  code=code.slice(0,start)+'const ttsQueue=[];function say(text,meta){announcements.push({text,meta});}\n'+code.slice(end);
  const messages=[],announcements=[],timeouts=new Map(),intervals=[];let seq=0,instance;
  class Connection extends EventEmitter{constructor(){super();instance=this;}async connect(){return{roomId:'123'};}async disconnect(){}}
- const context=vm.createContext({console:{log(){}},Date,Math,messages,announcements,resolveLiveUser,isXinVia,readChatText,buildTikTokConnectionOptions:()=>({}),explainTikTokConnectionError:e=>e.message,setInterval:(fn,ms)=>{intervals.push({fn,ms});return ++seq;},clearInterval(){},setTimeout:(fn,ms)=>{timeouts.set(++seq,{fn,ms});return seq;},clearTimeout:id=>timeouts.delete(id),broadcast:m=>messages.push(m),fakeLib:{TikTokLiveConnection:Connection,WebcastEvent:{LIKE:'like',CHAT:'chat',GIFT:'gift',MEMBER:'member'},ControlEvent:{ERROR:'error',DISCONNECTED:'disconnected'}}});
+ const context=vm.createContext({console:{log(){}},Date,Math,messages,announcements,resolveLiveUser,isXinVia,readChatText,AutoConnect,channelName,pickBotGift,buildTikTokConnectionOptions:()=>({}),explainTikTokConnectionError:e=>e.message,setInterval:(fn,ms)=>{intervals.push({fn,ms});return ++seq;},clearInterval(){},setTimeout:(fn,ms)=>{timeouts.set(++seq,{fn,ms});return seq;},clearTimeout:id=>timeouts.delete(id),broadcast:m=>messages.push(m),fakeLib:{TikTokLiveConnection:Connection,WebcastEvent:{LIKE:'like',CHAT:'chat',GIFT:'gift',MEMBER:'member'},ControlEvent:{ERROR:'error',DISCONNECTED:'disconnected'}}});
  vm.runInContext(fs.readFileSync(new URL('../../assets/fortunes.js',import.meta.url),'utf8'),context);vm.runInContext(fs.readFileSync(new URL('../../assets/blessings.js',import.meta.url),'utf8'),context);vm.runInContext(code,context);vm.runInContext('TikTokLib=fakeLib',context);
  await vm.runInContext("connectTikTok('test.account')",context);
  assert.equal(vm.runInContext('settings.voice',context),'vi-VN-HoaiMyNeural');assert.equal(vm.runInContext('settings.pitch',context),0);assert.equal(vm.runInContext('settings.rate',context),2);
@@ -31,4 +33,11 @@ test('like enters hall, xin vía is announced, and random bot timers stop cleanl
  assert.equal(vm.runInContext("viewers.get('12345').skin",context),'woman');assert.equal(vm.runInContext('viewers.size',context),24);
  assert.equal(vm.runInContext("[...viewers.values()].filter(v=>v.demo).length",context),23);assert.ok(messages.some(m=>m.t==='liveEvents'&&m.lastChatName==='Meoxinhhlive'));
  assert.doesNotThrow(()=>JSON.stringify(messages));
+ vm.runInContext("onGift('bot_unlimited','Bot điểm cao','Lộc',1,10);viewers.get('bot_unlimited').demo=true;onGift('bot_unlimited','Bot điểm cao','Lộc',1,99)",context);assert.equal(vm.runInContext("viewers.get('bot_unlimited').coins",context),109);
+ let finishConnection;Connection.prototype.connect=()=>new Promise(resolve=>finishConnection=resolve);
+ const pending=vm.runInContext("connectTikTok('other.channel')",context);
+ for(let i=0;i<10&&!finishConnection;i++)await Promise.resolve();assert.ok(finishConnection);
+ await vm.runInContext('disconnectTikTok()',context);finishConnection({roomId:'stale'});await pending;
+ assert.equal(vm.runInContext('tiktokState.status',context),'idle');
+
 });
