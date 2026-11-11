@@ -73,10 +73,10 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
   </div>
   <div id="guide" class="card ui">
     <span class="card-label">ĐÓN LỘC CÙNG NHAU</span>
-    <div class="guide-step"><i>01</i><span><b>Thả tim hoặc bình luận</b> để vào sảnh cầu tài lộc</span></div>
-    <div class="guide-step"><i>02</i><span>Bình luận <b>nam - nữ - bà - ông - bé trai - bé gái</b> để đổi hình</span></div>
-    <div class="guide-step"><i>03</i><span>Bình luận <b>xin vía</b> để xin vía tài lộc</span></div>
-    <div class="guide-step"><i>04</i><span><b>Tặng quà</b> để xướng tên chúc tài lộc</span></div>
+    <div class="guide-step"><i>01</i><span><b class="guide-action">“Thả tim”</b> hoặc <b class="guide-action">“Bình luận”</b> để vào sảnh cầu tài lộc</span></div>
+    <div class="guide-step"><i>02</i><span><b class="guide-action">“Bình luận”</b> <b class="guide-keyword"><span class="guide-term">“nam”</span> · <span class="guide-term">“nữ”</span> · <span class="guide-term">“bà”</span> · <span class="guide-term">“ông”</span> · <span class="guide-term">“bé trai”</span> · <span class="guide-term">“bé gái”</span></b> để đổi hình</span></div>
+    <div class="guide-step"><i>03</i><span><b class="guide-action">“Bình luận”</b> <b class="guide-keyword">“xin vía”</b> để nhận vía tài lộc và nghe lời chúc</span></div>
+    <div class="guide-step"><i>04</i><span><b class="guide-action">“Tặng quà”</b> để xướng tên chúc tài lộc</span></div>
   </div>
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
   <div id="chant" class="ui"><h4>✦ LỜI CHÚC TÀI LỘC ✦</h4><p id="chantText"></p></div>
@@ -190,7 +190,7 @@ function startAudio(){
   AC = new (window.AudioContext||window.webkitAudioContext)();
   master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);
   musicGain=AC.createGain();musicGain.gain.value=settings.music?.5:0;musicGain.connect(master);
-  music=new ProsperityMusic(AC,musicGain);music.start();
+  music=new ProsperityMusic(AC,musicGain,{onError:message=>{document.getElementById('audioWarning').textContent=message;}});music.start();
 }
 function duck(on){if(!musicGain)return;musicGain.gain.cancelScheduledValues(AC.currentTime);musicGain.gain.setTargetAtTime(!settings.music?0:on?.13:.5,AC.currentTime,.15);}
 // Keep announcements until the user unlocks audio, then play every item in order.
@@ -198,7 +198,7 @@ const ttsQ=[];let voicePlayer=null;
 function queueTTS(message){ttsQ.push(message);playTTS();}
 function playTTS(){
   if(!AC||AC.state!=='running')return;
-  if(!voicePlayer)voicePlayer=new FestivalVoiceQueue({context:AC,output:master,duck,onWarning:message=>{document.getElementById('audioWarning').textContent=message;}});
+  if(!voicePlayer)voicePlayer=new FestivalVoiceQueue({context:AC,output:master,duck,settings:()=>settings,onStart:m=>{if(m.tag==='fortune'&&m.fortune)showFortune(m);},onWarning:message=>{document.getElementById('audioWarning').textContent=message;}});
   while(ttsQ.length)voicePlayer.enqueue(ttsQ.shift());
 }
 /* ======================= effects ======================= */

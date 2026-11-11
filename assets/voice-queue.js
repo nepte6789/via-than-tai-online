@@ -1,9 +1,9 @@
 window.FestivalVoiceQueue=class{
-  constructor({context,output,duck,onWarning}){Object.assign(this,{context,output,duck,onWarning});this.items=[];this.busy=false;}
+  constructor({context,output,duck,onWarning,onStart=()=>{},settings=()=>({})}){Object.assign(this,{context,output,duck,onWarning,onStart,settings});this.items=[];this.busy=false;}
   enqueue(message){this.items.push(message);this.run();}
   async run(){
     if(this.busy||!this.items.length)return;this.busy=true;this.duck(true);
-    const message=this.items.shift();
+    const message=this.items.shift();this.onStart(message);
     try{
       if(message.url){try{await this.audio(message.url);}catch{await this.speech(message.text);}}
       else await this.speech(message.text);
@@ -20,11 +20,13 @@ window.FestivalVoiceQueue=class{
   async speech(text){
     if(!('speechSynthesis' in window)||!text)throw Error('Không có giọng đọc dự phòng. Hãy kiểm tra dịch vụ TTS.');
     const synth=window.speechSynthesis;
-    let voice=synth.getVoices().find(v=>/^vi([-_]|$)/i.test(v.lang));
-    if(!voice){await new Promise(resolve=>{const done=()=>{clearTimeout(timer);synth.removeEventListener('voiceschanged',done);resolve();};const timer=setTimeout(done,1000);synth.addEventListener('voiceschanged',done);});voice=synth.getVoices().find(v=>/^vi([-_]|$)/i.test(v.lang));}
+    const options=this.settings();
+    const pick=()=>{const voices=synth.getVoices().filter(v=>/^vi([-_]|$)/i.test(v.lang));const wanted=options.voice==='vi-VN-NamMinhNeural'?'namminh':'hoaimy';const clean=s=>s.normalize('NFD').replace(/[\u0300-\u036f\s_-]/g,'').toLowerCase();return voices.find(v=>clean(v.name).includes(wanted))||voices[0];};
+    let voice=pick();
+    if(!voice){await new Promise(resolve=>{const done=()=>{clearTimeout(timer);synth.removeEventListener('voiceschanged',done);resolve();};const timer=setTimeout(done,1000);synth.addEventListener('voiceschanged',done);});voice=pick();}
     if(!voice)throw Error('Máy chưa có giọng đọc tiếng Việt dự phòng; hãy cài giọng Việt hoặc kiểm tra TTS.');
     return new Promise((resolve,reject)=>{
-      const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=.98;
+      const utterance=new SpeechSynthesisUtterance(text);utterance.voice=voice;utterance.lang=voice.lang;utterance.rate=1+(options.rate??2)/100;utterance.pitch=Math.max(0,Math.min(2,1+(options.pitch??0)/50));
       let done=false;const finish=error=>{if(done)return;done=true;clearTimeout(timer);error?reject(error):resolve();};
       const timer=setTimeout(()=>{synth.cancel();finish(Error('Giọng đọc dự phòng không hoàn tất'));},120000);
       utterance.onend=()=>finish();utterance.onerror=()=>finish(Error('Giọng đọc dự phòng bị gián đoạn'));synth.speak(utterance);
