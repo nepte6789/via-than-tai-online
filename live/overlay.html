@@ -158,6 +158,7 @@ function updateClock(){document.getElementById('timer').textContent=vietnamClock
 updateClock();setInterval(updateClock,1000);
 let giftHide=null;
 function showGift(m){
+  if(m.demo&&Date.now()<realFortuneUntil)return;
   document.getElementById("fortune").hidden=true;
   document.getElementById('giftWho').textContent = m.name;
   document.getElementById('giftWhat').textContent = `thành tâm dâng ${m.giftName}${m.count>1?' ×'+m.count:''} · tài lộc ${m.total}`;
@@ -166,10 +167,12 @@ function showGift(m){
   const el=document.getElementById('gift'); el.classList.add('show'); clearTimeout(giftHide); giftHide=setTimeout(()=>el.classList.remove('show'), m.tier>=3?9000:6500);
 }
 let chantHide=null;
-function showChant(text){ document.getElementById("fortune").hidden=true; document.getElementById('chantText').textContent=text; const el=document.getElementById('chant'); el.classList.add('show'); clearTimeout(chantHide); chantHide=setTimeout(()=>el.classList.remove('show'), 14000); }
+function showChant(text){ if(Date.now()<realFortuneUntil)return; document.getElementById("fortune").hidden=true; document.getElementById('chantText').textContent=text; const el=document.getElementById('chant'); el.classList.add('show'); clearTimeout(chantHide); chantHide=setTimeout(()=>el.classList.remove('show'), 14000); }
 
-let fortuneHide=null;
+let fortuneHide=null,realFortuneUntil=0;
 function showFortune(m){
+  if(m.demo&&Date.now()<realFortuneUntil)return;
+  if(!m.demo)realFortuneUntil=Date.now()+12000;
   document.getElementById('fortuneNumber').textContent='VÍA TÀI LỘC · '+String(m.fortune.number).padStart(2,'0');
   document.getElementById('fortuneTitle').textContent=m.fortune.title;
   document.getElementById('fortuneWho').textContent='Gửi '+m.name+' · '+m.fortune.wish;
@@ -178,7 +181,7 @@ function showFortune(m){
   document.getElementById('gift').classList.remove('show');document.getElementById('chant').classList.remove('show');
   document.getElementById('fortune').hidden=false;clearTimeout(fortuneHide);fortuneHide=setTimeout(()=>document.getElementById('fortune').hidden=true,12000);
 }
-document.getElementById('fortuneClose').onclick=()=>{clearTimeout(fortuneHide);document.getElementById('fortune').hidden=true;};
+document.getElementById('fortuneClose').onclick=()=>{realFortuneUntil=0;clearTimeout(fortuneHide);document.getElementById('fortune').hidden=true;};
 /* ======================= audio ======================= */
 let AC=null, master=null, musicGain=null, music=null, settings={ music:true };
 let haloPulse=0;
