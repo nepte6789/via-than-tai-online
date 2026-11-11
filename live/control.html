@@ -78,7 +78,7 @@ button.red{background:var(--red);border-color:#b84a33}
       <button data-gift="Thỏi vàng" data-dia="30">Thỏi vàng · 30</button>
       <button data-gift="Túi tài lộc" data-dia="199">Tài lộc · 199</button>
     </div>
-    <p class="hint">Gõ <b>nam · nữ · bà · ông · bé trai · bé gái</b> làm bình luận để đổi hình; bình luận <b>xin quẻ</b> để xin quẻ tài lộc.</p>
+    <p class="hint">Gõ <b>nam · nữ · bà · ông · bé trai · bé gái</b> làm bình luận để đổi hình; bình luận <b>xin vía</b> để xin quẻ tài lộc.</p>
     <h2>Đổ người mẫu</h2>
     <div class="row"><button data-fill="15">15</button><button data-fill="36">36</button><button data-fill="64">64</button><button data-fill="100">100</button></div>
     <button class="red" id="btnClear">Làm trống toàn bộ chỗ ngồi</button>
@@ -105,6 +105,7 @@ button.red{background:var(--red);border-color:#b84a33}
     <div class="row tight">
       <label class="check"><input type="checkbox" id="music" checked> Nhạc tài lộc vui tươi</label>
       <label class="check"><input type="checkbox" id="autoChant" checked> Lời chúc tự động</label>
+      <label class="check"><input type="checkbox" id="autoXinVia" checked> Bot tự xin vía ngẫu nhiên</label>
     </div>
     <div class="row">
       <label>Lời chúc mỗi (phút)<input id="chantEveryMin" type="number" min="1" max="60" value="3"></label>
@@ -130,7 +131,7 @@ const $ = id => document.getElementById(id);
 let ws = null;
 const send = (cmd, extra={}) => ws?.readyState===1 && ws.send(JSON.stringify({ t:'ctl', cmd, ...extra }));
 function logLine(s){ const el=$('log'); el.textContent += s + '\n'; el.scrollTop = el.scrollHeight; }
-const SETTING_IDS = ['voice','pitch','rate','music','autoChant','chantEveryMin','title','subtitle','seatMode','joinOnEnter'];
+const SETTING_IDS = ['voice','pitch','rate','music','autoChant','autoXinVia','chantEveryMin','title','subtitle','seatMode','joinOnEnter'];
 function fillSettings(s){ for (const k of SETTING_IDS){ const el=$(k); if (!el || s[k]===undefined) continue; if (el.type==='checkbox') el.checked=!!s[k]; else el.value=s[k]; } }
 function readSettings(){ const o={}; for (const k of SETTING_IDS){ const el=$(k); o[k] = el.type==='checkbox' ? el.checked : el.type==='number' ? +el.value : el.value; } return o; }
 const people = new Map();
@@ -147,9 +148,10 @@ function setTT(st){
   el.textContent = st.status==='connected' ? `TikTok: @${st.uniqueId} ✓` : st.status==='connecting' ? `TikTok: đang kết nối @${st.uniqueId}…` : st.status==='error' ? 'TikTok: lỗi kết nối' : 'TikTok: chưa kết nối';
 }
 function connect(){
-  ws = new WebSocket(`ws://${location.host}/ws?role=control`);
+  ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws?role=control`);
   ws.onopen = () => { $('srv').textContent='Server: đang chạy'; $('srv').className='chip ok'; };
   ws.onclose = () => { $('srv').textContent='Server: mất kết nối'; $('srv').className='chip bad'; setTimeout(connect, 2000); };
+  ws.onerror = () => { $('srv').textContent='Server: lỗi WebSocket'; $('srv').className='chip bad'; };
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.t==='state'){ fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
