@@ -138,3 +138,9 @@ Thả tim có thông tin người dùng sẽ đưa người xem vào sảnh kể
 Mọi quà và vía được xếp hàng đọc. TTS chia đoạn dài, chỉ chấp nhận stream kết thúc hoàn chỉnh, thử lại bằng kết nối mới khi stream bị cắt và luôn đóng kết nối sau mỗi lần. File không hoàn chỉnh không được phát. Nếu Edge vẫn lỗi, overlay chuyển sang giọng Việt của trình duyệt; cần cài giọng Việt trên máy nếu chưa có. Overlay hiện thông báo khi cả dịch vụ và giọng dự phòng đều không dùng được. Bấm bật âm thanh một lần trên overlay để trình duyệt cho phép đọc. Bản web tĩnh xếp hàng lời chúc thay vì cắt ngang câu trước.
 
 Chạy kiểm tra: `cd live && node --test test/*.test.mjs`.
+
+### Nhạc MP3 và cấu hình giọng mặc định
+
+Trình phát hiện dùng trực tiếp `assets/music/music1.mp3` và `music2.mp3`, phát lần lượt rồi lặp. Thay nội dung hai file này để đổi nhạc; không cần sửa mã. Bộ phát giai điệu tổng hợp cũ đã được bỏ. URL nhạc có mã phiên để tránh nghe bản đã lưu trong bộ nhớ đệm sau khi tải lại trang. Nhạc vẫn hạ âm lượng khi đọc lời chúc và dừng theo điều khiển âm thanh.
+
+Mặc định mới: Hoài My (nữ), pitch `0 Hz`, rate `+2%`. Giọng Việt dự phòng ưu tiên Hoài My nếu máy có cài, và nhận tốc độ/độ trầm từ cài đặt. Nội dung vía được gắn theo từng mục trong hàng đọc; khi bắt đầu đọc sẽ hiện lại chính vía đó. Các yêu cầu xin vía hợp lệ vẫn có khoảng chờ 15 giây mỗi người để chống gửi dồn. Hành động và từ khóa trong hướng dẫn được tô màu, đặt trong dấu ngoặc kép.

@@ -25,9 +25,9 @@ const PORT = +process.env.PORT || 3000;
 const settings = {
   title: 'Vía Thần Tài Online',
   subtitle: 'Cung chúc phát tài, vạn sự hanh thông',
-  voice: 'vi-VN-NamMinhNeural',      // or vi-VN-HoaiMyNeural
-  pitch: -18,                        // Hz
-  rate: -20,                         // %
+  voice: 'vi-VN-HoaiMyNeural',       // default female voice
+  pitch: 0,                        // Hz
+  rate: 2,                         // %
   music: true,
   autoChant: true, chantEveryMin: 3,
   autoXinVia: true,
@@ -96,7 +96,7 @@ function drawFortune(v){
   v.lastFortuneAt=Date.now();
   const fortune=globalThis.ProsperityFortunes[Math.floor(Math.random()*globalThis.ProsperityFortunes.length)];
   broadcast({t:'fortune',id:v.id,name:v.name,fortune});
-  say(`${spoken(v.name)} xin vía tài lộc. ${fortune.title}. ${fortune.verse} ${fortune.advice} ${fortune.wish}`,{tag:'fortune',id:v.id});
+  say(`${spoken(v.name)} xin vía tài lộc. ${fortune.title}. ${fortune.verse} ${fortune.advice} ${fortune.wish}`,{tag:'fortune',id:v.id,name:v.name,fortune});
 }
 
 function onGift(id, name, giftName, count, diamonds, avatar){

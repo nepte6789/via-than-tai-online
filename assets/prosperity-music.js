@@ -1,25 +1,20 @@
-/* Original, looping pentatonic instrumental: bright plucked melody, bass and soft dance rhythm. */
-window.ProsperityMusic = class {
-  constructor(context, output) { this.context=context; this.output=output; this.step=0; this.timer=null; this.next=0; }
-  note(midi,time,length,volume,type='triangle') {
-    const c=this.context,o=c.createOscillator(),g=c.createGain(); o.type=type; o.frequency.value=440*2**((midi-69)/12);
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(volume,time+.008);g.gain.exponentialRampToValueAtTime(.0001,time+length);
-    o.connect(g);g.connect(this.output);o.start(time);o.stop(time+length+.02);
+/* Use the owner's two MP3s, never a synthesized substitute. */
+const prosperityMusicBase=new URL('./music/',document.currentScript.src);
+window.ProsperityMusic=class{
+  constructor(context,output,{onError=()=>{},onTrack=()=>{}}={}){
+    Object.assign(this,{context,output,onError,onTrack});this.index=0;this.version=Date.now();this.failed=new Set();this.started=false;
+    this.tracks=['music1.mp3','music2.mp3'].map(name=>new URL(name,prosperityMusicBase).href);
   }
-  beat(time,accent) {
-    const c=this.context,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(accent?120:180,time);o.frequency.exponentialRampToValueAtTime(50,time+.09);
-    g.gain.setValueAtTime(accent?.16:.06,time);g.gain.exponentialRampToValueAtTime(.0001,time+.12);o.connect(g);g.connect(this.output);o.start(time);o.stop(time+.14);
+  start(){if(this.started)return;this.started=true;this.failed.clear();this.playTrack(this.index);}
+  release(){if(this.el){this.el.onended=this.el.onerror=null;this.el.pause();this.el.removeAttribute('src');this.el.load();}this.source?.disconnect();this.el=null;this.source=null;}
+  playTrack(index){
+    this.release();if(!this.started)return;this.index=index%this.tracks.length;
+    const el=this.el=new Audio(`${this.tracks[this.index]}?v=${this.version}`);el.preload='auto';
+    this.source=this.context.createMediaElementSource(el);this.source.connect(this.output);
+    const fail=()=>{if(el!==this.el)return;this.failed.add(this.index);if(this.failed.size===this.tracks.length){this.onError('Không tải được hai file nhạc. Kiểm tra assets/music/music1.mp3 và music2.mp3.');this.release();this.started=false;}else this.playTrack((this.index+1)%this.tracks.length);};
+    el.onended=()=>{if(el===this.el)this.playTrack((this.index+1)%this.tracks.length);};el.onerror=fail;
+    el.play().then(()=>{if(el===this.el){this.failed.delete(this.index);this.onTrack(this.index+1);}}).catch(error=>{if(el!==this.el)return;if(error.name==='NotAllowedError'){this.onError('Bấm bật âm thanh để phát nhạc.');this.release();this.started=false;}else fail();});
   }
-  start() {
-    if(this.timer) return;this.next=this.context.currentTime+.06;
-    const melody=[72,76,79,81,79,76,74,76,79,81,84,81,79,76,74,72,76,79,81,84,86,84,81,79,76,74,72,74,76,79,76,72];
-    const roots=[48,53,57,55];
-    const schedule=()=>{while(this.next<this.context.currentTime+.25){const i=this.step++,t=this.next,root=roots[Math.floor(i/16)%4];
-      this.note(melody[i%melody.length],t,.23,.13);
-      if(i%2===0){this.note(root,t,.35,.15,'sine');this.beat(t,i%4===0);}
-      if(i%4===2){this.note(root+12,t,.16,.045);this.note(root+19,t,.16,.04);}
-      this.next+=60/112/2;
-    }};schedule();this.timer=setInterval(schedule,80);
-  }
-  stop(){clearInterval(this.timer);this.timer=null;}
+  next(){this.failed.clear();if(!this.started){this.index=(this.index+1)%this.tracks.length;this.start();}else this.playTrack((this.index+1)%this.tracks.length);}
+  stop(){this.started=false;this.release();}
 };

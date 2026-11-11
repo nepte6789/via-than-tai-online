@@ -95,15 +95,15 @@ button.red{background:var(--red);border-color:#b84a33}
   <section class="card">
     <h2>3 · Giọng đọc · Nhạc tài lộc</h2>
     <div class="row">
-      <label>Giọng<select id="voice"><option value="vi-VN-NamMinhNeural">Nam Minh (nam)</option><option value="vi-VN-HoaiMyNeural">Hoài My (nữ)</option></select></label>
-      <label>Độ trầm (Hz)<input id="pitch" type="number" step="1" value="-18"></label>
-      <label>Tốc độ (%)<input id="rate" type="number" step="1" value="-20"></label>
+      <label>Giọng<select id="voice"><option value="vi-VN-NamMinhNeural">Nam Minh (nam)</option><option value="vi-VN-HoaiMyNeural" selected>Hoài My (nữ)</option></select></label>
+      <label>Độ trầm (Hz)<input id="pitch" type="number" step="1" value="0"></label>
+      <label>Tốc độ (%)<input id="rate" type="number" step="1" value="2"></label>
     </div>
     <label for="sayText">Đọc thử / phát thông báo</label>
     <textarea id="sayText">Cung chúc phát tài, vạn sự hanh thông. Kính chúc quý khách thân tâm an lạc, tài lộc hanh thông, vạn sự như ý.</textarea>
     <div class="row"><button class="primary" id="btnSay">Phát lên live</button><button id="btnChant">Phát lời chúc ngay</button></div>
     <div class="row tight">
-      <label class="check"><input type="checkbox" id="music" checked> Nhạc tài lộc vui tươi</label>
+      <label class="check"><input type="checkbox" id="music" checked> Nhạc MP3: music1 → music2</label>
       <label class="check"><input type="checkbox" id="autoChant" checked> Lời chúc tự động</label>
       <label class="check"><input type="checkbox" id="autoXinVia" checked> Bot tự xin vía ngẫu nhiên</label>
     </div>

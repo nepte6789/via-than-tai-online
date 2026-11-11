@@ -203,29 +203,13 @@ function updateCount(){ countEl.textContent = visitors.length; }
 const DEMO = ['Diệu Hạnh','Minh Tâm','Thiện Đức','Huệ An','Tịnh Nhã','Quảng Trí','Chơn Như','Pháp Hỷ','Nguyên Thanh','Tâm Đăng','Diệu Liên','Trí Hải','Phước Lộc','Hạnh Nguyện','Như Ý','Bảo Châu','Thanh Lương','Từ Tâm','An Lạc','Giác Hoa','Tuệ Minh','Liên Hương'];
 DEMO.forEach((n,i)=>{ const v = addVisitor(n, SKINS[i%SKINS.length], true); v.coins = [120,80,55,30,20,12,8,5][i]||0; });
 
-/* ---- audio: Web Audio drone + bell + mõ, no files ---- */
-let AC=null, master=null, muted=false, mokTimer=null, bellTimer=null, me=null, haloPulse=0;
-/* Music: Gemini-made tracks played in order, crossfaded, ducked under TTS. Bell + mõ stay synthesized. */
-const TRACKS = []; // Optional licensed background tracks can be added here.
-let musicGain=null, musicEls=[], trackIdx=0, duck=1, festiveMusic=null;
+/* ---- Owner-supplied MP3 playlist ---- */
+let AC=null,master=null,muted=false,me=null,haloPulse=0,musicGain=null,festiveMusic=null;
 function audioStart(){
-  if (AC) return;
-  AC = new (window.AudioContext||window.webkitAudioContext)(); master = AC.createGain(); master.gain.value=.8; master.connect(AC.destination);
-  musicGain = AC.createGain(); musicGain.gain.value=.55; musicGain.connect(master);
-  festiveMusic=new ProsperityMusic(AC,musicGain);festiveMusic.start();AC.resume().catch(()=>{});
-}
-function playTrack(i){
-  if (!TRACKS.length) return;
-  trackIdx = (i+TRACKS.length)%TRACKS.length; const tr = TRACKS[trackIdx];
-  const el = new Audio(tr.src); el.preload='auto'; el.crossOrigin='anonymous';
-  const src = AC.createMediaElementSource(el), g = AC.createGain(); g.gain.value=0; src.connect(g); g.connect(musicGain);
-  const now = AC.currentTime; g.gain.linearRampToValueAtTime(1, now+4);
-  for (const old of musicEls){ old.g.gain.cancelScheduledValues(now); old.g.gain.setValueAtTime(old.g.gain.value, now); old.g.gain.linearRampToValueAtTime(0, now+4); setTimeout(()=>{ try{old.el.pause();}catch(e){} }, 4200); }
-  musicEls = [{el,g}];
-  el.addEventListener('timeupdate', ()=>{ if (el.duration && el.duration-el.currentTime < 4 && !el._next){ el._next=true; playTrack(trackIdx+1); } });
-  el.addEventListener('error', ()=>{ if (TRACKS.length>1 && !el._next){ el._next=true; playTrack(trackIdx+1); } });
-  el.play().catch(()=>{});
-  const nt=document.getElementById('nowPlaying'); if (nt) nt.textContent = '♪ ' + tr.name;
+  if(AC)return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.8;master.connect(AC.destination);
+  musicGain=AC.createGain();musicGain.gain.value=.55;musicGain.connect(master);
+  festiveMusic=new ProsperityMusic(AC,musicGain,{onError:showToast,onTrack:i=>{document.getElementById('nowPlaying').textContent='♪ Nhạc '+i;}});festiveMusic.start();AC.resume().catch(()=>{});
 }
 function setDuck(on){ if(!musicGain) return; const t=AC.currentTime; musicGain.gain.cancelScheduledValues(t); musicGain.gain.setValueAtTime(musicGain.gain.value,t); musicGain.gain.linearRampToValueAtTime(on?.18:.55, t+.4); }
 // Pick a Vietnamese voice explicitly. Setting lang alone is not enough: with no vi voice installed the browser
@@ -234,7 +218,7 @@ let viVoice = null, ttsWarned = false;
 function pickViVoice(){
   try {
     const vs = speechSynthesis.getVoices().filter(v => /^vi([-_]|$)/i.test(v.lang));
-    const rank = v => (/natural|online|neural/i.test(v.name)?4:0) + (/hoaimy|namminh/i.test(v.name)?2:0) + (/google/i.test(v.name)?1:0);
+    const rank = v => (/natural|online|neural/i.test(v.name)?4:0) + (/hoai.?my/i.test(v.name)?10:0) + (/google/i.test(v.name)?1:0);
     viVoice = vs.sort((a,b)=>rank(b)-rank(a))[0] || null;
   } catch(e){ viVoice = null; }
   const el = document.getElementById('voiceInfo');
@@ -246,7 +230,7 @@ function ttsSpeak(text){
     if(!('speechSynthesis' in window)) return;
     if(!viVoice){ pickViVoice(); }
     if(!viVoice){ if(!ttsWarned){ ttsWarned=true; say('Hệ thống',' Máy này chưa có giọng tiếng Việt nên không đọc thành tiếng.'); } return; }
-    const u=new SpeechSynthesisUtterance(text); u.voice=viVoice; u.lang=viVoice.lang; u.rate=.95; u.pitch=.95; u.onstart=()=>setDuck(true); u.onend=u.onerror=()=>setDuck(false); speechSynthesis.speak(u);
+    const u=new SpeechSynthesisUtterance(text); u.voice=viVoice; u.lang=viVoice.lang; u.rate=1.02; u.pitch=1; u.onstart=()=>setDuck(true); u.onend=u.onerror=()=>setDuck(false); speechSynthesis.speak(u);
   } catch(e){}
 }
 
@@ -291,7 +275,7 @@ form.addEventListener('submit', e=>{
   audioStart();
   me = addVisitor(name, mySkin, false, true);
   gate.hidden=true; document.getElementById('me').hidden=false; document.getElementById('meName').textContent=name;
-  for (const id of ['mute','leave','gifts','fortuneButton']) document.getElementById(id).hidden=false;
+  for (const id of ['mute','leave','gifts','fortuneButton','nextTrack']) document.getElementById(id).hidden=false;
   say(name,' đã tham gia'); showToast('Hoan nghênh '+name+' tham gia Vía Thần Tài'); ttsSpeak('Hoan nghênh '+name+' tham gia Vía Thần Tài');
 });
 document.getElementById('gifts').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b||!me) return; donate(me, +b.dataset.coins, b.dataset.fx, SUTRA[Math.floor(Math.random()*SUTRA.length)]); });
@@ -301,9 +285,9 @@ document.getElementById('fortuneButton').addEventListener('click',()=>{
   const f=ProsperityFortunes[Math.floor(Math.random()*ProsperityFortunes.length)];
   say(me.name,` xin vía ${f.number} · ${f.title}. ${f.wish}`);showToast(`Vía ${f.number} · ${f.title} — ${f.advice}`);ttsSpeak(`${me.name} xin vía tài lộc. ${f.title}. ${f.verse} ${f.advice} ${f.wish}`);
 });
-document.getElementById('nextTrack').addEventListener('click', ()=>{ if(AC) playTrack(trackIdx+1); });
+document.getElementById('nextTrack').addEventListener('click', ()=>{ festiveMusic?.next(); });
 document.getElementById('mute').addEventListener('click', e=>{ muted=!muted; if(master) master.gain.value=muted?0:.8; e.currentTarget.textContent=muted?'Bật nhạc':'Tắt nhạc'; e.currentTarget.setAttribute('aria-pressed',muted); });
-document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack','fortuneButton']) document.getElementById(id).hidden=true; for (const m of musicEls){ try{m.el.pause();}catch(e){} } musicEls=[]; if(festiveMusic){festiveMusic.stop();festiveMusic=null;} if (AC){ AC.close(); AC=null; } clearInterval(mokTimer); clearInterval(bellTimer); renderBoard(); });
+document.getElementById('leave').addEventListener('click', ()=>{ removeVisitor(me); me=null; gate.hidden=false; document.getElementById('me').hidden=true; for (const id of ['mute','leave','gifts','nextTrack','fortuneButton']) document.getElementById(id).hidden=true; if(festiveMusic){festiveMusic.stop();festiveMusic=null;} if (AC){ AC.close(); AC=null; } renderBoard(); });
 canvas.addEventListener('pointerdown', ()=>{ if(!me||me.state!=='sit') return; const s=SUTRA[Math.floor(Math.random()*SUTRA.length)]; say(me.name,' '+s); me.bow=1; floaters.push({x:me.seat.x,y:me.seat.y-80,vx:0,vy:-70,t:0,life:2,s:.14}); });
 // demo activity: random comments and small gifts from the crowd
 setInterval(()=>{ if (visitors.length<2) return; const v=visitors[Math.floor(Math.random()*visitors.length)]; if (v===me) return;
