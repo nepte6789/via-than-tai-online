@@ -62,7 +62,7 @@ button.red{background:var(--red);border-color:#b84a33}
     <p class="hint">Chỉ đọc sự kiện công khai của phòng live (bình luận, quà, tim). Không cần mật khẩu hay cookie TikTok. Phải bật LIVE trước rồi mới kết nối.</p>
     <button class="gold" id="btnOverlay">Mở màn hình overlay 9:16</button>
     <p class="hint">Trong TikTok LIVE Studio: Add source → Window capture → chọn cửa sổ overlay. Bấm "bật âm thanh" một lần trong cửa sổ đó.</p>
-    <h2>Trong điện Thần Tài</h2>
+    <h2>Trong điện Thần Tài</h2><p id="liveEvents" class="hint" role="status">Bình luận TikTok nhận được: 0</p>
     <div id="people"><table><tbody id="peopleBody"><tr><td class="hint">Chưa có ai</td><td></td></tr></tbody></table></div>
   </section>
 
@@ -144,13 +144,15 @@ function renderPeople(){
   $('cnt').textContent = `${people.size} người`;
 }
 function fillBots(b){if(!b)return;$('btnBots').textContent=b.on?'Tắt bot':'Bật bot';$('botN').value=b.n;$('botPace').value=b.pace;$('botRotate').value=b.rotateSeconds;}
+function renderLiveEvents(e){if(!e)return;$('liveEvents').textContent=`Bình luận TikTok nhận được: ${e.chatCount} · Thả tim: ${e.likeCount}`+(e.lastChatName?` · Gần nhất: ${e.lastChatName}`:'')+(e.missingUser?` · Thiếu ID: ${e.missingUser}`:'');}
 function setTT(st){
   const el=$('tt'); el.className='chip ' + (st.status==='connected'?'ok':st.status==='error'?'bad':'');
   el.textContent = st.status==='connected' ? `TikTok: @${st.uniqueId} ✓` : st.status==='connecting' ? `TikTok: đang kết nối @${st.uniqueId}…` : st.status==='error' ? 'TikTok: lỗi kết nối' : 'TikTok: chưa kết nối';
 }
 function connect(){
   ws=new LiveSocket('control',m=>{
-    if (m.t==='state'){ fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
+    if (m.t==='state'){ renderLiveEvents(m.liveEvents); fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
+    else if(m.t==='liveEvents')renderLiveEvents(m);
     else if (m.t==='logs'){ $('log').textContent=''; m.lines.forEach(logLine); }
     else if (m.t==='log') logLine(m.line);
     else if (m.t==='tiktok') setTT(m);
