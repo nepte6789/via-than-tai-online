@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
+import { completeSpeech } from './tts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');            // repo root: serves /assets, /live
@@ -96,7 +96,7 @@ function drawFortune(v){
   v.lastFortuneAt=Date.now();
   const fortune=globalThis.ProsperityFortunes[Math.floor(Math.random()*globalThis.ProsperityFortunes.length)];
   broadcast({t:'fortune',id:v.id,name:v.name,fortune});
-  say(`${spoken(v.name)} nhận quẻ ${fortune.number}, ${fortune.title}. ${fortune.wish}`,{tag:'fortune',id:v.id});
+  say(`${spoken(v.name)} xin vía tài lộc. ${fortune.title}. ${fortune.verse} ${fortune.advice} ${fortune.wish}`,{tag:'fortune',id:v.id});
 }
 
 function onGift(id, name, giftName, count, diamonds, avatar){
@@ -116,7 +116,7 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   const tier = coins >= 99 ? 3 : coins >= 10 ? 2 : 1;
   const line = `Cung chúc phát tài, vạn sự hanh thông. Quý khách ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
   broadcast({ t:'gift', id, name: v.name, giftName, count, coins, total: v.coins, tier, prayer });
-  if (settings.gifts.readAll || coins >= settings.gifts.minDiamonds) say(line, { tag:'gift', id });
+  say(line, { tag:'gift', id });
 }
 
 function pickPrayer(){
@@ -128,24 +128,23 @@ const spoken = s => String(s).replace(/[_@.]+/g, ' ').replace(/[^\p{L}\p{N}\s]/g
 
 /* ------------------------------------------------------------------ TTS */
 const ttsQueue = []; let ttsBusy = false, ttsSeq = 0;
-function esc(s){ return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c])); }
-function say(text, meta = {}){ if (ttsQueue.length >= 15) { addLog('Hàng đợi giọng đọc đầy, bỏ qua 1 câu'); return; } ttsQueue.push({ text: String(text).slice(0, 500), meta }); pumpTTS(); }
+function say(text, meta = {}){
+  if(meta.tag==='chant'&&ttsQueue.some(x=>x.meta.tag==='chant'))return;
+  ttsQueue.push({text:String(text).slice(0,1000),meta,voice:{voice:settings.voice,pitch:settings.pitch,rate:settings.rate}});pumpTTS();
+}
 async function pumpTTS(){
-  if (ttsBusy || !ttsQueue.length) return; ttsBusy = true;
-  const { text, meta } = ttsQueue.shift();
-  try {
-    const file = `tts_${Date.now()}_${++ttsSeq}.mp3`;
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(settings.voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-    const { audioStream } = tts.toStream(esc(text), { pitch: `${settings.pitch >= 0 ? '+' : ''}${settings.pitch}Hz`, rate: `${settings.rate >= 0 ? '+' : ''}${settings.rate}%` });
-    const chunks = [];
-    await new Promise((res, rej) => { audioStream.on('data', c => chunks.push(c)); audioStream.on('close', res); audioStream.on('error', rej); });
-    try { tts.close(); } catch {}
-    fs.writeFileSync(path.join(TTS_DIR, file), Buffer.concat(chunks));
-    broadcast({ t:'tts', url: `/live/tts/${file}`, text, ...meta });
-    const old = fs.readdirSync(TTS_DIR).sort(); while (old.length > 40) { try { fs.unlinkSync(path.join(TTS_DIR, old.shift())); } catch {} }
-  } catch (e) { addLog('TTS lỗi: ' + (e?.message || e)); }
-  ttsBusy = false; setTimeout(pumpTTS, 50);
+  if(ttsBusy||!ttsQueue.length)return;ttsBusy=true;
+  const {text,meta,voice}=ttsQueue.shift();
+  try{
+    const audio=await completeSpeech(text,voice);
+    const file=`tts_${Date.now()}_${++ttsSeq}.mp3`;
+    fs.writeFileSync(path.join(TTS_DIR,file),audio);
+    broadcast({t:'tts',url:`/live/tts/${file}`,text,...meta});
+    const old=fs.readdirSync(TTS_DIR).sort();while(old.length>200){try{fs.unlinkSync(path.join(TTS_DIR,old.shift()));}catch{}}
+  }catch(error){
+    addLog('TTS đã thử lại nhưng chưa hoàn tất; chuyển giọng đọc dự phòng: '+(error?.message||error));
+    broadcast({t:'tts',text,fallback:true,...meta});
+  }finally{ttsBusy=false;setTimeout(pumpTTS,50);}
 }
 
 const CHANTS = [
@@ -185,7 +184,7 @@ async function connectTikTok(uniqueId){
     conn.on(WebcastEvent.LIKE, d => {
       const user=d.user||d.common?.user||{};
       const id=user.uniqueId||user.userId||d.userId||d.user_id;
-      if(id){const {v}=seat(String(id),nm(user),{avatar:av(user)});if(v)broadcast({t:'like',id:String(id),n:d.likeCount||d.totalLikeCount||1});}
+      if(id){const {v}=seat(String(id),user.nickname||user.uniqueId||String(id),{avatar:av(user)});if(v)broadcast({t:'like',id:String(id),n:d.likeCount||1});}
     });
     conn.on(ControlEvent.DISCONNECTED, () => { tiktokState = { ...tiktokState, status: 'disconnected' }; broadcast({ t:'tiktok', ...tiktokState }); addLog('TikTok: mất kết nối'); });
     conn.on(ControlEvent.ERROR, e => addLog('TikTok lỗi: ' + (e?.info || e?.message || e)));
@@ -217,6 +216,7 @@ function onControl(m){
   switch (m.cmd){
     case 'connect': connectTikTok(m.uniqueId); break;
     case 'disconnect': disconnectTikTok(); addLog('Đã ngắt kết nối TikTok'); break;
+    case 'like': {const name=String(m.name||'Khách').slice(0,18),id='sim_'+name;const {v}=seat(id,name);if(v)broadcast({t:'like',id,n:1});break;}
     case 'chat': { const n = String(m.name || 'Khách').slice(0, 18); onChat('sim_' + n, n, String(m.text || 'Cung chúc phát tài, vạn sự hanh thông').slice(0, 120)); break; }
     case 'gift': { const n = String(m.name || 'Khách').slice(0, 18); onGift('sim_' + n, n, String(m.gift || 'Hoa hồng').slice(0, 30), clamp(m.count, 1, 99), clamp(m.diamonds, 1, 50000)); break; }
     case 'fill': fillDemo(clamp(m.n, 1, 100)); addLog(`Đổ người mẫu: ${viewers.size} người`); break;
@@ -262,7 +262,7 @@ function scheduleBotXinVia(){
   if(!botTimer||!settings.autoXinVia)return;
   autoViaTimer=setTimeout(()=>{
     const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));
-    if(bots.length){const v=bots[Math.floor(Math.random()*bots.length)];onChat(v.id,v.name,'xin vía');addLog(`🤖 Bot ${v.name} tự xin vía`);}
+    if(bots.length&&ttsQueue.length<3){const v=bots[Math.floor(Math.random()*bots.length)];onChat(v.id,v.name,'xin vía');addLog(`🤖 Bot ${v.name} tự xin vía`);}
     scheduleBotXinVia();
   },(45+Math.random()*105)*1000);
 }
@@ -333,12 +333,16 @@ const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024,
   } });
 function broadcast(msg, only){ const s = JSON.stringify(msg); for (const c of wss.clients) if (c.readyState === 1 && (!only || c.role === only)) c.send(s); }
 wss.on('connection', (ws, req) => {
+  ws.alive=true;ws.on('pong',()=>{ws.alive=true;});ws.on('error',()=>{});
   ws.role = new URL(req.url, 'http://x').searchParams.get('role') === 'control' ? 'control' : 'overlay';
   ws.send(JSON.stringify(snapshot()));
   if (ws.role === 'control') ws.send(JSON.stringify({ t:'logs', lines: log }));
   ws.on('message', buf => {
+    try{if(JSON.parse(buf).t==='ping'){ws.send(JSON.stringify({t:'pong'}));return;}}catch{}
     if (ws.role !== 'control') return;                          // overlays only listen
     try { const m = JSON.parse(buf); if (m && m.t === 'ctl') onControl(m); } catch (e) { addLog('Lệnh lỗi: ' + e.message); }
   });
 });
+const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;if(ws.readyState===1)ws.ping();}},20000);
+wss.on('close',()=>clearInterval(heartbeat));
 server.listen(PORT, HOST, () => addLog(`Server chạy tại http://localhost:${PORT}  ·  Bảng điều khiển: http://localhost:${PORT}/live/control.html  ·  Overlay: http://localhost:${PORT}/live/overlay.html`));

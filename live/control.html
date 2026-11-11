@@ -72,13 +72,13 @@ button.red{background:var(--red);border-color:#b84a33}
     <input id="simName" value="Minh An">
     <label for="simText">Bình luận / lời chúc</label>
     <input id="simText" value="Cầu tài lộc hanh thông, gia đạo bình an">
-    <div class="row"><button id="btnChat">Gửi bình luận</button><button id="btnFortune">Xin quẻ tài lộc</button></div>
+    <div class="row"><button id="btnChat">Gửi bình luận</button><button id="btnLike">Thả tim vào sảnh</button><button id="btnFortune">Xin vía tài lộc</button></div>
     <div class="row">
       <button data-gift="Hoa hồng" data-dia="1">Hoa hồng · 1</button>
       <button data-gift="Thỏi vàng" data-dia="30">Thỏi vàng · 30</button>
       <button data-gift="Túi tài lộc" data-dia="199">Tài lộc · 199</button>
     </div>
-    <p class="hint">Gõ <b>nam · nữ · bà · ông · bé trai · bé gái</b> làm bình luận để đổi hình; bình luận <b>xin vía</b> để xin quẻ tài lộc.</p>
+    <p class="hint">Gõ <b>nam · nữ · bà · ông · bé trai · bé gái</b> làm bình luận để đổi hình; bình luận <b>xin vía</b> để xin vía tài lộc.</p>
     <h2>Đổ người mẫu</h2>
     <div class="row"><button data-fill="15">15</button><button data-fill="36">36</button><button data-fill="64">64</button><button data-fill="100">100</button></div>
     <button class="red" id="btnClear">Làm trống toàn bộ chỗ ngồi</button>
@@ -126,6 +126,7 @@ button.red{background:var(--red);border-color:#b84a33}
 </section>
 <footer class="hint" style="margin-top:14px;text-align:center">Vía Thần Tài Online · mã nguồn mở MIT · thực hiện bởi Kent Juno</footer>
 
+<script src="/assets/live-socket.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 let ws = null;
@@ -148,12 +149,7 @@ function setTT(st){
   el.textContent = st.status==='connected' ? `TikTok: @${st.uniqueId} ✓` : st.status==='connecting' ? `TikTok: đang kết nối @${st.uniqueId}…` : st.status==='error' ? 'TikTok: lỗi kết nối' : 'TikTok: chưa kết nối';
 }
 function connect(){
-  ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws?role=control`);
-  ws.onopen = () => { $('srv').textContent='Server: đang chạy'; $('srv').className='chip ok'; };
-  ws.onclose = () => { $('srv').textContent='Server: mất kết nối'; $('srv').className='chip bad'; setTimeout(connect, 2000); };
-  ws.onerror = () => { $('srv').textContent='Server: lỗi WebSocket'; $('srv').className='chip bad'; };
-  ws.onmessage = e => {
-    const m = JSON.parse(e.data);
+  ws=new LiveSocket('control',m=>{
     if (m.t==='state'){ fillSettings(m.settings); fillBots(m.bots); setTT(m.tiktok); people.clear(); for (const v of m.viewers) people.set(v.id,v); renderPeople(); }
     else if (m.t==='logs'){ $('log').textContent=''; m.lines.forEach(logLine); }
     else if (m.t==='log') logLine(m.line);
@@ -162,7 +158,12 @@ function connect(){
     else if (m.t==='leave'){ people.delete(m.id); renderPeople(); }
     else if (m.t==='gift'){ const p=people.get(m.id); if(p){ p.coins=m.total; renderPeople(); } }
     else if (m.t==='bots') fillBots(m);
-  };
+  },status=>{
+    $('srv').textContent=status==='connected'?'Server: đang chạy':status==='syncing'?'Server: đang đồng bộ':'Server: đang kết nối lại';
+    $('srv').className='chip '+(status==='connected'?'ok':'bad');
+    if(status!=='connected'){$('tt').className='chip';$('tt').textContent='TikTok: đang chờ xác nhận từ server';}
+    for(const el of document.querySelectorAll('button,input,select,textarea'))el.disabled=status!=='connected';
+  });
 }
 connect();
 
@@ -176,7 +177,8 @@ document.querySelectorAll('[data-fill]').forEach(b => b.onclick = () => send('fi
 $('btnClear').onclick = () => send('clear');
 $('btnBots').onclick = () => send('bots', { on: $('btnBots').textContent.includes('Bật'), n: +$('botN').value, pace: $('botPace').value, rotateSeconds: +$('botRotate').value });
 for(const id of ['botN','botPace','botRotate']) $(id).onchange=()=>{if($('btnBots').textContent==='Tắt bot')send('bots',{on:true,n:+$('botN').value,pace:$('botPace').value,rotateSeconds:+$('botRotate').value});};
-$('btnFortune').onclick=()=>send('chat',{name:$('simName').value,text:'xin quẻ'});
+$('btnLike').onclick=()=>send('like',{name:$('simName').value});
+$('btnFortune').onclick=()=>send('chat',{name:$('simName').value,text:'xin vía'});
 $('btnSay').onclick = () => send('say', { text: $('sayText').value });
 $('btnChant').onclick = () => send('chant');
 for (const k of SETTING_IDS) $(k).addEventListener('change', () => send('settings', { settings: readSettings() }));

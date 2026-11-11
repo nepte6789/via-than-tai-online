@@ -128,3 +128,13 @@ npm start
 ```
 
 Đặt biến môi trường trong hệ điều hành hoặc trình quản lý tiến trình nếu muốn giữ cấu hình sau khi đóng terminal. Sau khi đổi key, khởi động lại server rồi kết nối lại kênh. API key không được gửi xuống overlay/bảng điều khiển. Có tài khoản hoặc API key không đồng nghĩa mọi endpoint đều được phép: quyền ký và hạn mức phụ thuộc gói EulerStream. Danh mục quà mở rộng vẫn tắt để tránh gọi API URL-signing yêu cầu Business.
+
+### Kết nối bảng điều khiển và đọc lời chúc
+
+Bảng điều khiển và overlay có heartbeat, tự nối lại với thời gian chờ tăng dần, khôi phục từ snapshot khi kết nối lại và kiểm tra kết nối khi tab hoạt động trở lại. Mất liên lạc với server sẽ chuyển trạng thái TikTok sang chờ xác nhận thay vì giữ dấu xanh cũ; việc nối lại giao diện không ngắt kết nối TikTok của server.
+
+Thả tim có thông tin người dùng sẽ đưa người xem vào sảnh kể cả chưa bình luận. Lệnh **xin vía** và nút tương ứng thay cho xin quẻ. Bot tự gửi xin vía sau mỗi khoảng ngẫu nhiên 45–150 giây khi bật chức năng này; tắt bot sẽ hủy lịch. Khi hàng chờ đọc đông, bot tạm nhường để ưu tiên người xem.
+
+Mọi quà và vía được xếp hàng đọc. TTS chia đoạn dài, chỉ chấp nhận stream kết thúc hoàn chỉnh, thử lại bằng kết nối mới khi stream bị cắt và luôn đóng kết nối sau mỗi lần. File không hoàn chỉnh không được phát. Nếu Edge vẫn lỗi, overlay chuyển sang giọng Việt của trình duyệt; cần cài giọng Việt trên máy nếu chưa có. Overlay hiện thông báo khi cả dịch vụ và giọng dự phòng đều không dùng được. Bấm bật âm thanh một lần trên overlay để trình duyệt cho phép đọc. Bản web tĩnh xếp hàng lời chúc thay vì cắt ngang câu trước.
+
+Chạy kiểm tra: `cd live && node --test test/*.test.mjs`.
