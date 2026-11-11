@@ -144,3 +144,11 @@ Chạy kiểm tra: `cd live && node --test test/*.test.mjs`.
 Trình phát hiện dùng trực tiếp `assets/music/music1.mp3` và `music2.mp3`, phát lần lượt rồi lặp. Thay nội dung hai file này để đổi nhạc; không cần sửa mã. Bộ phát giai điệu tổng hợp cũ đã được bỏ. URL nhạc có mã phiên để tránh nghe bản đã lưu trong bộ nhớ đệm sau khi tải lại trang. Nhạc vẫn hạ âm lượng khi đọc lời chúc và dừng theo điều khiển âm thanh.
 
 Mặc định mới: Hoài My (nữ), pitch `0 Hz`, rate `+2%`. Giọng Việt dự phòng ưu tiên Hoài My nếu máy có cài, và nhận tốc độ/độ trầm từ cài đặt. Nội dung vía được gắn theo từng mục trong hàng đọc; khi bắt đầu đọc sẽ hiện lại chính vía đó. Các yêu cầu xin vía hợp lệ vẫn có khoảng chờ 15 giây mỗi người để chống gửi dồn. Hành động và từ khóa trong hướng dẫn được tô màu, đặt trong dấu ngoặc kép.
+
+### Khách thật bình luận nhưng chưa thấy nhân vật
+
+Khách thật được ưu tiên hàng trước và xuất hiện ngay. Khi sảnh cố định đã đầy bot, một bot nhường chỗ cho khách thật; tổng số ghế vẫn đúng cấu hình và bảng tài lộc không bị xóa. Bot không được đẩy khách thật ra khỏi sảnh. Nếu đã đầy toàn khách thật, quy tắc nhường chỗ cho người không tặng quà im lặng lâu nhất vẫn áp dụng.
+
+Bộ nhận sự kiện chuẩn hóa ID chuỗi và hỗ trợ payload người dùng lồng/định dạng cũ; liên kết userId và uniqueId khi cả hai xuất hiện để tránh tạo trùng khi đổi loại sự kiện. Dữ liệu thiếu ID không tạo nhân vật ẩn danh dùng chung.
+
+Bảng điều khiển có **Bình luận TikTok nhận được**, số lượt tim nhận được, tên bình luận gần nhất và số sự kiện thiếu ID. Đây là số sự kiện từ TikTok, không tính nút thử hoặc bot. Nếu số bình luận vẫn bằng 0 khi người xem đang bình luận, server chưa nhận được sự kiện chat từ kết nối TikTok đó; dấu kết nối xanh hoặc bot hoạt động không xác nhận việc nhận chat. Kiểm tra đúng kênh và log kết nối. Nếu bộ đếm tăng, log sẽ cho biết người đó đã vào sảnh hay sảnh đầy khách thật.

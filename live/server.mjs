@@ -6,6 +6,7 @@
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
 import '../assets/fortunes.js';
+import { resolveLiveUser } from './live-user.mjs';
 import { buildTikTokConnectionOptions, explainTikTokConnectionError } from './tiktok-config.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -39,6 +40,8 @@ const viewers = new Map();           // id -> { id, name, skin, avatar, coins, j
 const merit = new Map(); // Session totals survive bot rotation and viewers leaving their seats.
 function leaderboard(){return [...merit.values()].sort((a,b)=>b.coins-a.coins).slice(0,5);}
 function publishMerit(){broadcast({t:'leaderboard',entries:leaderboard()});}
+const userAliases=new Map();
+let liveEvents={chatCount:0,likeCount:0,lastChatName:'',lastChatAt:0,missingUser:0};
 const startedAt = Date.now();
 let tiktok = null, tiktokState = { status: 'idle', uniqueId: '', error: '' };
 const log = [];
@@ -62,15 +65,20 @@ function skinFromText(t){
 const DEFAULT_SKINS = ['man','woman','grandpa','granny','boy','girl'];
 
 function pub(v){ return { id:v.id, name:v.name, skin:v.skin, avatar:v.avatar||'', coins:v.coins, demo:!!v.demo }; }
-function snapshot(){ return { t:'state', settings, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
+function snapshot(){ return { t:'state', settings, liveEvents, leaderboard:leaderboard(), bots:{on:!!botTimer,n:botOptions.n,pace:botOptions.pace,rotateSeconds:botOptions.rotateSeconds}, viewers:[...viewers.values()].map(pub), cap: capacity(), startedAt, tiktok: tiktokState }; }
 
 function seat(id, name, opts = {}){
+  if(id===undefined||id===null||!String(id).trim())return {v:null,isNew:false};
+  id=String(id);name=String(name||id);
   let v = viewers.get(id);
-  if (v){ v.lastAt = Date.now(); if (opts.avatar) v.avatar = opts.avatar; return { v, isNew:false }; }
-  if (viewers.size >= 100){                     // full: the longest-quiet non-donor stands up
-    const quiet = [...viewers.values()].filter(x => x.coins === 0).sort((a,b) => a.lastAt - b.lastAt)[0];
-    if (!quiet) return { v:null, isNew:false };
-    viewers.delete(quiet.id); broadcast({ t:'leave', id: quiet.id });
+  if(v){v.lastAt=Date.now();if(opts.avatar)v.avatar=opts.avatar;if(name)v.name=name.slice(0,18);return{v,isNew:false};}
+  const limit=settings.seatMode==='auto'?100:Number(settings.seatMode);
+  if(viewers.size>=limit){
+    // Real viewers take priority over all simulated occupants, even bots with points.
+    const candidates=[...viewers.values()].filter(x=>x.demo||(!opts.demo&&x.coins===0));
+    const quiet=candidates.sort((a,b)=>Number(b.demo)-Number(a.demo)||a.lastAt-b.lastAt)[0];
+    if(!quiet)return{v:null,isNew:false};
+    viewers.delete(quiet.id);broadcast({t:'leave',id:quiet.id});
   }
   v = { id, name: (name||id).slice(0, 18), skin: opts.skin || DEFAULT_SKINS[viewers.size % DEFAULT_SKINS.length],
         avatar: opts.avatar || '', coins: merit.get(id)?.coins || 0, joinedAt: Date.now(), lastAt: Date.now(), demo: !!opts.demo };
@@ -81,6 +89,7 @@ function seat(id, name, opts = {}){
 
 /* ------------------------------------------------------------- events in */
 function onChat(id, name, text, avatar){
+  id=id===undefined?undefined:String(id);
   text = String(text || '').slice(0, 120);
   const want = skinFromText(text);
   const { v, isNew } = seat(id, name, { avatar, skin: want || undefined });
@@ -164,27 +173,35 @@ async function connectTikTok(uniqueId){
   uniqueId = String(uniqueId || '').trim().replace(/^.*tiktok\.com\/@?/i, '').replace(/^@/, '').replace(/\/.*$/, '');
   if (!uniqueId) return;
   await disconnectTikTok();
+  liveEvents={chatCount:0,likeCount:0,lastChatName:'',lastChatAt:0,missingUser:0};
+  broadcast({t:'liveEvents',...liveEvents},'control');
   tiktokState = { status: 'connecting', uniqueId, error: '' }; broadcast({ t:'tiktok', ...tiktokState });
   try {
     TikTokLib ||= await import('tiktok-live-connector');
     const { TikTokLiveConnection, WebcastEvent, ControlEvent } = TikTokLib;
     const conn = new TikTokLiveConnection(uniqueId, buildTikTokConnectionOptions());
-    const av = u => u?.profilePicture?.url?.[0] || u?.profilePicture?.urlList?.[0] || u?.avatarThumb?.urlList?.[0] || u?.avatarThumb?.url?.[0] || '';
-    const nm = u => u?.nickname || u?.uniqueId || 'ẩn danh';
-    conn.on(WebcastEvent.CHAT, d => onChat(d.user?.uniqueId || d.user?.userId, nm(d.user), d.comment, av(d.user)));
-    conn.on(WebcastEvent.GIFT, d => {
-      const type = d.giftDetails?.giftType ?? d.extendedGiftInfo?.type;
-      if (type === 1 && !d.repeatEnd) return;                       // streak still running
-      const gname = d.giftDetails?.giftName || d.extendedGiftInfo?.name || 'quà';
-      const dia = d.giftDetails?.diamondCount ?? d.extendedGiftInfo?.diamond_count ?? 1;
-      onGift(d.user?.uniqueId || d.user?.userId, nm(d.user), gname, d.repeatCount || 1, dia, av(d.user));
-      addLog(`🎁 ${nm(d.user)} tặng ${gname} x${d.repeatCount || 1}`);
+    const readUser=data=>resolveLiveUser(data,userAliases);
+    conn.on(WebcastEvent.CHAT,data=>{
+      const user=readUser(data);liveEvents.chatCount++;liveEvents.lastChatAt=Date.now();
+      liveEvents.lastChatName=user?.name||'Không có ID';if(!user)liveEvents.missingUser++;
+      broadcast({t:'liveEvents',...liveEvents},'control');
+      if(!user){addLog('Bình luận TikTok nhận được nhưng thiếu ID người dùng');return;}
+      onChat(user.id,user.name,data.comment??data.text??'',user.avatar);
+      addLog(`💬 Nhận bình luận TikTok: ${user.name} · ${viewers.has(user.id)?'đã vào sảnh':'sảnh đã đầy khách thật'}`);
     });
-    conn.on(WebcastEvent.MEMBER, d => { if (settings.joinOnEnter) seat(d.user?.uniqueId, nm(d.user), { avatar: av(d.user) }); });
-    conn.on(WebcastEvent.LIKE, d => {
-      const user=d.user||d.common?.user||{};
-      const id=user.uniqueId||user.userId||d.userId||d.user_id;
-      if(id){const {v}=seat(String(id),user.nickname||user.uniqueId||String(id),{avatar:av(user)});if(v)broadcast({t:'like',id:String(id),n:d.likeCount||1});}
+    conn.on(WebcastEvent.GIFT,data=>{
+      const user=readUser(data);if(!user)return;
+      const type=data.giftDetails?.giftType??data.extendedGiftInfo?.type??data.giftType;
+      if(type===1&&!data.repeatEnd)return;
+      const gift=data.giftDetails?.giftName||data.extendedGiftInfo?.name||data.giftName||'quà';
+      const diamonds=data.giftDetails?.diamondCount??data.extendedGiftInfo?.diamond_count??data.diamondCount??1;
+      onGift(user.id,user.name,gift,data.repeatCount||1,diamonds,user.avatar);
+    });
+    conn.on(WebcastEvent.MEMBER,data=>{const user=readUser(data);if(settings.joinOnEnter&&user)seat(user.id,user.name,{avatar:user.avatar});});
+    conn.on(WebcastEvent.LIKE,data=>{
+      const user=readUser(data);liveEvents.likeCount++;
+      if(user){const {v}=seat(user.id,user.name,{avatar:user.avatar});if(v)broadcast({t:'like',id:user.id,n:data.likeCount||1});}
+      broadcast({t:'liveEvents',...liveEvents},'control');
     });
     conn.on(ControlEvent.DISCONNECTED, () => { tiktokState = { ...tiktokState, status: 'disconnected' }; broadcast({ t:'tiktok', ...tiktokState }); addLog('TikTok: mất kết nối'); });
     conn.on(ControlEvent.ERROR, e => addLog('TikTok lỗi: ' + (e?.info || e?.message || e)));
