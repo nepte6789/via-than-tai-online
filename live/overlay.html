@@ -75,7 +75,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
     <span class="card-label">ĐÓN LỘC CÙNG NHAU</span>
     <div class="guide-step"><i>01</i><span><b>Bình luận bất kỳ</b> để vào sảnh cầu tài lộc</span></div>
     <div class="guide-step"><i>02</i><span>Bình luận <b>nam - nữ - bà - ông - bé trai - bé gái</b> để đổi hình</span></div>
-    <div class="guide-step"><i>03</i><span>Bình luận <b>xin quẻ</b> để xin quẻ tài lộc</span></div>
+    <div class="guide-step"><i>03</i><span>Bình luận <b>xin vía</b> để xin quẻ tài lộc</span></div>
     <div class="guide-step"><i>04</i><span><b>Tặng quà</b> để xướng tên chúc tài lộc</span></div>
   </div>
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
@@ -214,7 +214,7 @@ function hearts(v,n){ for (let i=0;i<Math.min(6,n);i++) petals.push({x:v.x+(Math
 /* ======================= server link ======================= */
 let ws=null;
 function connect(){
-  ws = new WebSocket(`ws://${location.host}/ws?role=overlay`);
+  ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws?role=overlay`);
   const st=document.getElementById('conn');
   ws.onopen=()=>{ st.textContent=''; };
   ws.onclose=()=>{ st.textContent='mất kết nối server… đang thử lại'; setTimeout(connect,2000); };
