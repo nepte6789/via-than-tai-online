@@ -225,7 +225,7 @@ function onControl(m){
     case 'say': if (m.text) say(String(m.text).slice(0, 400), { tag:'say' }); break;
     case 'settings':
       applySettings(m.settings || {});
-      scheduleChant(); broadcast({ t:'settings', settings, cap: capacity() }); break;
+      scheduleChant(); scheduleBotXinVia(); broadcast({ t:'settings', settings, cap: capacity() }); break;
     case 'bots': setBots(!!m.on, +m.n || 12, m.pace, m.rotateSeconds); break;
   }
 }
