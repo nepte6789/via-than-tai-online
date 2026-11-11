@@ -158,3 +158,9 @@ Bảng điều khiển có **Bình luận TikTok nhận được**, số lượt
 Nhận cả `xin vía`, `Xin vía!`, `xin via`, `xin vía ❤️`, `xin vía tài lộc` hoặc câu có cụm `xin vía`; chuẩn hóa dấu và ký tự ẩn trước khi nhận lệnh. Payload có comment rỗng sẽ thử trường text/content còn lại. Trong khoảng chờ 15 giây, gửi lại lệnh sẽ hiện lại vía vừa nhận thay vì im lặng; không tạo thêm lượt đọc trùng trong khoảng chờ.
 
 Log ghi rõ `Xin vía: [tên] nhận vía [số] · đã xếp hàng đọc`. Yêu cầu người thật được xếp trước bot chưa xử lý ở cả server và overlay. Bot và lời chúc tự động không che vía người thật trong 12 giây hiển thị. File/giọng đọc vẫn phụ thuộc tình trạng Edge TTS hoặc giọng Việt dự phòng trên máy; nút bật âm thanh overlay cần được bấm một lần.
+
+### Mặc định nhẹ nhàng và lời chúc mỗi hai phút
+
+Server tự bật 12 bot ở nhịp chậm khi khởi động; vẫn có thể tắt hoặc đổi số lượng/nhịp trong bảng điều khiển. Lời chúc tự động mặc định mỗi 2 phút, dùng 24 nội dung khác nhau trong `assets/blessings.js`, lần lượt đọc hết trước khi quay lại.
+
+Hall mới là `assets/artwork/hall-calm.webp`, giữ Thần Tài, hai cột đỏ, hai đèn lồng và cây lộc nhỏ; bỏ cột rồng dày, cụm hoa/vàng lớn, hoa văn sàn và các props trang trí chồng lên hall. Web và overlay cùng dùng ảnh mới. Banner quà/lời chúc chuyển lên chân tượng, giữa hai bảng bên; thẻ vía dài vẫn có khu vực riêng. Hướng dẫn bên trái được thay bằng bốn dòng nội dung mới.
