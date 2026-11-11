@@ -6,6 +6,7 @@
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
 import '../assets/fortunes.js';
+import '../assets/blessings.js';
 import {isXinVia,readChatText} from './chat-command.mjs';
 import { resolveLiveUser } from './live-user.mjs';
 import { buildTikTokConnectionOptions, explainTikTokConnectionError } from './tiktok-config.mjs';
@@ -31,7 +32,7 @@ const settings = {
   pitch: 0,                        // Hz
   rate: 2,                         // %
   music: true,
-  autoChant: true, chantEveryMin: 3,
+  autoChant: true, chantEveryMin: 2,
   autoXinVia: true,
   seatMode: 'auto',                  // auto | 24 | 36 | 64 | 100
   joinOnEnter: false,                // also seat viewers who only enter the room
@@ -164,12 +165,7 @@ async function pumpTTS(){
   }finally{ttsBusy=false;setTimeout(pumpTTS,50);}
 }
 
-const CHANTS = [
-  'Kính chúc mọi nhà bình an, làm ăn phát đạt, tài lộc dồi dào, vạn sự như ý.',
-  'Cung chúc phát tài, vạn sự hanh thông, gia đạo an khang, phú quý trường tồn.',
-  'Kính chúc quý khách thân tâm an lạc, gặp nhiều may mắn, mọi việc thuận buồm xuôi gió.',
-  'Chúc năm mới tài lộc đủ đầy, công danh rộng mở, gia đình hòa thuận, phúc khí viên mãn.',
-];
+const CHANTS = globalThis.ProsperityBlessings;
 let chantIdx = 0, chantTimer = null;
 function chant(){ const text = CHANTS[chantIdx++ % CHANTS.length]; broadcast({ t:'chant', text }); say(text, { tag:'chant' }); }
 function scheduleChant(){ clearInterval(chantTimer); if (settings.autoChant) chantTimer = setInterval(chant, Math.max(1, settings.chantEveryMin) * 60_000); }
@@ -268,7 +264,7 @@ function applySettings(o){ for (const [k, fn] of Object.entries(SETTING_RULES)) 
 
 /* ----------------------------------------------------------------- bots */
 let botTimer=null, rotationTimer=null, autoViaTimer=null, botSerial=0;
-const botOptions={n:12,pace:'mid',rotateSeconds:90};
+const botOptions={n:12,pace:'slow',rotateSeconds:90};
 const BOT_LINES=['Xin một lời chúc làm ăn hanh thông','Xin chúc gia đình bình an, tài lộc đủ đầy','Xin lời chúc buôn may bán đắt','Cầu công việc thuận lợi, vạn sự như ý','Xin lời chúc sức khỏe và may mắn'];
 const BOT_NAMES=['Minh Anh','Ngọc Hà','Thanh Mai','Quốc Bảo','Thùy Linh','Đức Huy','Kim Ngân','Tuấn Anh','Bảo Trâm','Hoàng Nam','Thu Hương','Gia Hân','Phúc An','Khánh Vy','Anh Khoa','Hải Yến','Trúc Linh','Mai Phương','Ngọc Minh','Quang Vinh','Thanh Tùng','Xuân Mai','Thiên Phúc','Đình Khang','Bảo Ngọc','Lan Anh','Hồng Nhung','Hải Đăng','Thảo Vy','Tuệ Anh','Minh Khôi','Ngọc Lan'];
 function spawnBot(){
@@ -293,7 +289,7 @@ function scheduleBotXinVia(){
 }
 function setBots(on,n,pace,rotateSeconds){
   clearInterval(botTimer);clearInterval(rotationTimer);clearTimeout(autoViaTimer);botTimer=rotationTimer=autoViaTimer=null;
-  Object.assign(botOptions,{n:clamp(n,1,100),pace:['slow','mid','fast'].includes(pace)?pace:'mid',rotateSeconds:clamp(rotateSeconds||90,15,3600)});
+  Object.assign(botOptions,{n:clamp(n,1,100),pace:['slow','mid','fast'].includes(pace)?pace:'slow',rotateSeconds:clamp(rotateSeconds||90,15,3600)});
   const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));
   for(const v of bots.slice(on?botOptions.n:0)){viewers.delete(v.id);broadcast({t:'leave',id:v.id});}
   if(on){
@@ -370,4 +366,5 @@ wss.on('connection', (ws, req) => {
 });
 const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;if(ws.readyState===1)ws.ping();}},20000);
 wss.on('close',()=>clearInterval(heartbeat));
+setBots(true,12,'slow',90);
 server.listen(PORT, HOST, () => addLog(`Server chạy tại http://localhost:${PORT}  ·  Bảng điều khiển: http://localhost:${PORT}/live/control.html  ·  Overlay: http://localhost:${PORT}/live/overlay.html`));

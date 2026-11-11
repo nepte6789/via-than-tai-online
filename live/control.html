@@ -86,7 +86,7 @@ button.red{background:var(--red);border-color:#b84a33}
     <div class="row">
       <label>Số bot<input id="botN" type="number" min="1" max="100" value="12"></label>
       <label>Đổi một khách mỗi (giây)<input id="botRotate" type="number" min="15" max="3600" value="90"></label>
-      <label>Nhịp<select id="botPace"><option value="slow">Chậm</option><option value="mid" selected>Vừa</option><option value="fast">Nhanh</option></select></label>
+      <label>Nhịp<select id="botPace"><option value="slow" selected>Chậm</option><option value="mid">Vừa</option><option value="fast">Nhanh</option></select></label>
       <button id="btnBots">Bật bot</button>
     </div>
     <p class="hint">Bot mô phỏng tự xin lời chúc, nhận tối đa 3 điểm lộc mỗi khách. Tự thay khách theo thời gian đã chọn; bảng tài lộc giữ điểm trong phiên, kể cả khi khách rời đi.</p>
@@ -108,7 +108,7 @@ button.red{background:var(--red);border-color:#b84a33}
       <label class="check"><input type="checkbox" id="autoXinVia" checked> Bot tự xin vía ngẫu nhiên</label>
     </div>
     <div class="row">
-      <label>Lời chúc mỗi (phút)<input id="chantEveryMin" type="number" min="1" max="60" value="3"></label>
+      <label>Lời chúc mỗi (phút)<input id="chantEveryMin" type="number" min="1" max="60" value="2"></label>
     </div>
     <h2>Cảnh</h2>
     <label>Tên không gian<input id="title" value="Vía Thần Tài Online"></label>

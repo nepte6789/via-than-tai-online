@@ -6,7 +6,7 @@
 <meta name="description" content="Vía Thần Tài Online: gửi lời cầu chúc bình an, may mắn và tài lộc.">
 <meta name="theme-color" content="#0c0705">
 <meta property="og:title" content="Vía Thần Tài Online">
-<meta property="og:image" content="/assets/artwork/hall-imperial.webp">
+<meta property="og:image" content="/assets/artwork/hall-calm.webp">
 <title>Vía Thần Tài Online</title>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <style>
@@ -146,6 +146,7 @@ input::placeholder{color:#7d6a52}
   </div>
 </div></div>
 
+<script src="assets/blessings.js"></script>
 <script src="assets/fortunes.js"></script>
 <script src="assets/festival-art.js"></script>
 <script src="assets/prosperity-music.js"></script>
@@ -157,7 +158,7 @@ input::placeholder{color:#7d6a52}
 const SW = 1080, SH = 1920;
 const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const A = {};   // loaded images
-const ASSETS = {hall:'assets/artwork/hall-imperial.webp',man:'assets/artwork/characters-festival.webp',woman:'assets/artwork/characters-festival.webp',grandpa:'assets/artwork/characters-festival.webp',granny:'assets/artwork/characters-festival.webp',boy:'assets/artwork/characters-festival.webp',girl:'assets/artwork/characters-festival.webp',lotus:'assets/artwork/props-festival.webp',petal:'assets/artwork/props-festival.webp',bell:'assets/artwork/props-festival.webp',incense:'assets/artwork/props-festival.webp',tree:'assets/artwork/props-festival.webp',blossom:'assets/artwork/props-festival.webp'};
+const ASSETS = {hall:'assets/artwork/hall-calm.webp',man:'assets/artwork/characters-festival.webp',woman:'assets/artwork/characters-festival.webp',grandpa:'assets/artwork/characters-festival.webp',granny:'assets/artwork/characters-festival.webp',boy:'assets/artwork/characters-festival.webp',girl:'assets/artwork/characters-festival.webp',lotus:'assets/artwork/props-festival.webp',petal:'assets/artwork/props-festival.webp',bell:'assets/artwork/props-festival.webp',incense:'assets/artwork/props-festival.webp',tree:'assets/artwork/props-festival.webp',blossom:'assets/artwork/props-festival.webp'};
 let loaded = 0; const total = Object.keys(ASSETS).length;
 for (const [k,src] of Object.entries(ASSETS)) { const im = FestivalArt.prepare(new Image(),k); im.onload = ()=>{ loaded++; }; im.onerror = ()=>{ loaded++; console.warn('missing', src); }; im.src = src; A[k] = im; }
 
@@ -201,7 +202,7 @@ function updateCount(){ countEl.textContent = visitors.length; }
 
 // demo crowd so the hall never opens empty (replace with live viewers later)
 const DEMO = ['Diệu Hạnh','Minh Tâm','Thiện Đức','Huệ An','Tịnh Nhã','Quảng Trí','Chơn Như','Pháp Hỷ','Nguyên Thanh','Tâm Đăng','Diệu Liên','Trí Hải','Phước Lộc','Hạnh Nguyện','Như Ý','Bảo Châu','Thanh Lương','Từ Tâm','An Lạc','Giác Hoa','Tuệ Minh','Liên Hương'];
-DEMO.forEach((n,i)=>{ const v = addVisitor(n, SKINS[i%SKINS.length], true); v.coins = [120,80,55,30,20,12,8,5][i]||0; });
+DEMO.slice(0,12).forEach((n,i)=>{ const v = addVisitor(n, SKINS[i%SKINS.length], true); v.coins = [120,80,55,30,20,12,8,5][i]||0; });
 
 /* ---- Owner-supplied MP3 playlist ---- */
 let AC=null,master=null,muted=false,me=null,haloPulse=0,musicGain=null,festiveMusic=null;
@@ -247,7 +248,7 @@ function renderBoard(){
 renderBoard();
 
 /* ---- donation: what happens when someone gives ---- */
-const SUTRA = ['Cung chúc phát tài · Vạn sự hanh thông','Chúc gia đạo bình an, sức khỏe dồi dào','Chúc công việc hanh thông, may mắn đủ đầy','Nguyện cầu bình an cho gia đình','Cầu cho cha mẹ được khỏe mạnh','Nguyện điều lành và tài lộc đến với mọi nhà'];
+const SUTRA = globalThis.ProsperityBlessings;
 function donate(v, coins, kind, text){
   v.coins += coins; v.glow = 1; v.bow = 1;
   const big = coins >= 99;
@@ -293,7 +294,7 @@ canvas.addEventListener('pointerdown', ()=>{ if(!me||me.state!=='sit') return; c
 setInterval(()=>{ if (visitors.length<2) return; const v=visitors[Math.floor(Math.random()*visitors.length)]; if (v===me) return;
   if (Math.random()<.3) donate(v, [1,1,5,20][Math.floor(Math.random()*4)], ['petal','petal','incense','lotus'][Math.floor(Math.random()*4)], '');
   else { say(v.name,' '+SUTRA[Math.floor(Math.random()*SUTRA.length)]); v.bow=1; }
-}, 4200);
+}, 6000);
 
 /* ---- render ---- */
 let last=performance.now();
@@ -323,7 +324,6 @@ function tick(now){
   ctx.restore();
   // candle flicker overlay
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.06+.04*Math.sin(t*9)*Math.sin(t*13.3); ctx.fillStyle='#ffb347'; ctx.fillRect(0,300,SW,900); ctx.restore();
-  drawSprite(A.tree,120,1120,.36); drawSprite(A.blossom,970,1110,.4);
   // visitors, back to front
   const order=[...visitors].sort((a,b)=>a.y-b.y);
   for (const v of order){

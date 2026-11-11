@@ -73,10 +73,10 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(-
   </div>
   <div id="guide" class="card ui">
     <span class="card-label">ĐÓN LỘC CÙNG NHAU</span>
-    <div class="guide-step"><i>01</i><span><b class="guide-action">“Thả tim”</b> hoặc <b class="guide-action">“Bình luận”</b> để vào sảnh cầu tài lộc</span></div>
-    <div class="guide-step"><i>02</i><span><b class="guide-action">“Bình luận”</b> <b class="guide-keyword"><span class="guide-term">“nam”</span> · <span class="guide-term">“nữ”</span> · <span class="guide-term">“bà”</span> · <span class="guide-term">“ông”</span> · <span class="guide-term">“bé trai”</span> · <span class="guide-term">“bé gái”</span></b> để đổi hình</span></div>
-    <div class="guide-step"><i>03</i><span><b class="guide-action">“Bình luận”</b> <b class="guide-keyword">“xin vía”</b> để nhận vía tài lộc và nghe lời chúc</span></div>
-    <div class="guide-step"><i>04</i><span><b class="guide-action">“Tặng quà”</b> để xướng tên chúc tài lộc</span></div>
+    <div class="guide-step"><i>01</i><span><b class="guide-action">Thả tim</b> hoặc <b class="guide-action">bình luận</b> để vào sảnh cầu tài lộc</span></div>
+    <div class="guide-step"><i>02</i><span><b class="guide-action">Bình luận:</b> <b class="guide-keyword">nam - nữ - ông - bà - <span class="guide-term">bé trai</span> - <span class="guide-term">bé gái</span></b> để đổi hình đại diện</span></div>
+    <div class="guide-step"><i>03</i><span><b class="guide-action">Bình luận:</b> <b class="guide-keyword">"Xin vía"</b> để nhận quẻ chúc phúc</span></div>
+    <div class="guide-step"><i>04</i><span><b class="guide-action">Tặng quà</b> để xướng tên chúc tài lộc</span></div>
   </div>
   <div id="merit" class="card ui"><h3>✦ BẢNG TÀI LỘC ✦</h3><ol id="meritList"><li class="empty">Chưa có</li></ol></div>
   <div id="chant" class="ui"><h4>✦ LỜI CHÚC TÀI LỘC ✦</h4><p id="chantText"></p></div>
@@ -99,7 +99,7 @@ addEventListener('resize', fit); fit();
 
 /* ======================= assets ======================= */
 const A = {};
-const IMG = {hall:'/assets/artwork/hall-imperial.webp',man:'/assets/artwork/characters-festival.webp',woman:'/assets/artwork/characters-festival.webp',grandpa:'/assets/artwork/characters-festival.webp',granny:'/assets/artwork/characters-festival.webp',boy:'/assets/artwork/characters-festival.webp',girl:'/assets/artwork/characters-festival.webp',lotus:'/assets/artwork/props-festival.webp',petal:'/assets/artwork/props-festival.webp',bell:'/assets/artwork/props-festival.webp',incense:'/assets/artwork/props-festival.webp',tree:'/assets/artwork/props-festival.webp',blossom:'/assets/artwork/props-festival.webp'};
+const IMG = {hall:'/assets/artwork/hall-calm.webp',man:'/assets/artwork/characters-festival.webp',woman:'/assets/artwork/characters-festival.webp',grandpa:'/assets/artwork/characters-festival.webp',granny:'/assets/artwork/characters-festival.webp',boy:'/assets/artwork/characters-festival.webp',girl:'/assets/artwork/characters-festival.webp',lotus:'/assets/artwork/props-festival.webp',petal:'/assets/artwork/props-festival.webp',bell:'/assets/artwork/props-festival.webp',incense:'/assets/artwork/props-festival.webp',tree:'/assets/artwork/props-festival.webp',blossom:'/assets/artwork/props-festival.webp'};
 for (const [k,src] of Object.entries(IMG)){ const im=FestivalArt.prepare(new Image(),k); im.src=src; A[k]=im; }
 const ANIM = {};
 const hasAnim = () => false;
@@ -276,7 +276,6 @@ function frame(now){
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.2+.08*Math.sin(t*1.2)+haloPulse*.5; const halo=ctx.createRadialGradient(540,520,80,540,520,250);halo.addColorStop(0,"#ffda7b33");halo.addColorStop(1,"#ffda7b00");ctx.fillStyle=halo;ctx.fillRect(290,270,500,500); ctx.restore();
   ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=.05+.035*Math.sin(t*9)*Math.sin(t*13.3); ctx.fillStyle='#ffb347'; ctx.fillRect(0,300,1080,800); ctx.restore();
   ctx.save(); ctx.fillStyle='#efe3cc'; for (let i=0;i<16;i++){ const a=(t*.08+i*.0625)%1; ctx.globalAlpha=.28*(1-a); ctx.beginPath(); ctx.arc(540+Math.sin(a*7+i)*20*a, 1000-a*280, 4+a*15, 0, 6.28); ctx.fill(); } ctx.restore();
-  sprite(A.tree,125,1260,.4); sprite(A.blossom,960,1245,.45);
   // visitors back to front
   const bubbles=[];
   const list=[...visitors.values()].sort((a,b)=>a.y-b.y);
