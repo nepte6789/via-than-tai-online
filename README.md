@@ -152,3 +152,9 @@ Khách thật được ưu tiên hàng trước và xuất hiện ngay. Khi sả
 Bộ nhận sự kiện chuẩn hóa ID chuỗi và hỗ trợ payload người dùng lồng/định dạng cũ; liên kết userId và uniqueId khi cả hai xuất hiện để tránh tạo trùng khi đổi loại sự kiện. Dữ liệu thiếu ID không tạo nhân vật ẩn danh dùng chung.
 
 Bảng điều khiển có **Bình luận TikTok nhận được**, số lượt tim nhận được, tên bình luận gần nhất và số sự kiện thiếu ID. Đây là số sự kiện từ TikTok, không tính nút thử hoặc bot. Nếu số bình luận vẫn bằng 0 khi người xem đang bình luận, server chưa nhận được sự kiện chat từ kết nối TikTok đó; dấu kết nối xanh hoặc bot hoạt động không xác nhận việc nhận chat. Kiểm tra đúng kênh và log kết nối. Nếu bộ đếm tăng, log sẽ cho biết người đó đã vào sảnh hay sảnh đầy khách thật.
+
+### Nhận lệnh xin vía trong bình luận thật
+
+Nhận cả `xin vía`, `Xin vía!`, `xin via`, `xin vía ❤️`, `xin vía tài lộc` hoặc câu có cụm `xin vía`; chuẩn hóa dấu và ký tự ẩn trước khi nhận lệnh. Payload có comment rỗng sẽ thử trường text/content còn lại. Trong khoảng chờ 15 giây, gửi lại lệnh sẽ hiện lại vía vừa nhận thay vì im lặng; không tạo thêm lượt đọc trùng trong khoảng chờ.
+
+Log ghi rõ `Xin vía: [tên] nhận vía [số] · đã xếp hàng đọc`. Yêu cầu người thật được xếp trước bot chưa xử lý ở cả server và overlay. Bot và lời chúc tự động không che vía người thật trong 12 giây hiển thị. File/giọng đọc vẫn phụ thuộc tình trạng Edge TTS hoặc giọng Việt dự phòng trên máy; nút bật âm thanh overlay cần được bấm một lần.

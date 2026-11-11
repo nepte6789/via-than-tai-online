@@ -1,6 +1,6 @@
 window.FestivalVoiceQueue=class{
   constructor({context,output,duck,onWarning,onStart=()=>{},settings=()=>({})}){Object.assign(this,{context,output,duck,onWarning,onStart,settings});this.items=[];this.busy=false;}
-  enqueue(message){this.items.push(message);this.run();}
+  enqueue(message){const before=(!message.demo&&message.tag!=='chant')?this.items.findIndex(x=>x.demo||x.tag==='chant'):-1;if(before<0)this.items.push(message);else this.items.splice(before,0,message);this.run();}
   async run(){
     if(this.busy||!this.items.length)return;this.busy=true;this.duck(true);
     const message=this.items.shift();this.onStart(message);

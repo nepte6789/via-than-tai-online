@@ -6,6 +6,7 @@
 //   cd live && npm install && node server.mjs        → http://localhost:3000/live/control.html
 //
 import '../assets/fortunes.js';
+import {isXinVia,readChatText} from './chat-command.mjs';
 import { resolveLiveUser } from './live-user.mjs';
 import { buildTikTokConnectionOptions, explainTikTokConnectionError } from './tiktok-config.mjs';
 import http from 'node:http';
@@ -97,15 +98,20 @@ function onChat(id, name, text, avatar){
   if (!isNew && want && want !== v.skin){ v.skin = want; broadcast({ t:'skin', id, skin: want }); }
   v.lastText = text; v.lastTextAt = Date.now();
   broadcast({ t:'chat', id, name: v.name, text });
-  if (/^xin v[ií]a$/u.test(text.toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim())) drawFortune(v);
+  if(isXinVia(text))drawFortune(v);
 }
 
 function drawFortune(v){
-  if(v.lastFortuneAt && Date.now()-v.lastFortuneAt<15000)return;
+  if(v.lastFortuneAt&&Date.now()-v.lastFortuneAt<15000){
+    if(v.lastFortune)broadcast({t:'fortune',id:v.id,name:v.name,fortune:v.lastFortune,demo:!!v.demo,repeated:true});
+    addLog(`Xin vía: ${v.name} đang trong 15 giây chờ; hiện lại vía vừa nhận`);return;
+  }
   v.lastFortuneAt=Date.now();
   const fortune=globalThis.ProsperityFortunes[Math.floor(Math.random()*globalThis.ProsperityFortunes.length)];
-  broadcast({t:'fortune',id:v.id,name:v.name,fortune});
-  say(`${spoken(v.name)} xin vía tài lộc. ${fortune.title}. ${fortune.verse} ${fortune.advice} ${fortune.wish}`,{tag:'fortune',id:v.id,name:v.name,fortune});
+  v.lastFortune=fortune;
+  broadcast({t:'fortune',id:v.id,name:v.name,fortune,demo:!!v.demo});
+  addLog(`Xin vía: ${v.name} nhận vía ${fortune.number} · đã xếp hàng đọc`);
+  say(`${spoken(v.name)} xin vía tài lộc. ${fortune.title}. ${fortune.verse} ${fortune.advice} ${fortune.wish}`,{tag:'fortune',id:v.id,name:v.name,fortune,demo:!!v.demo});
 }
 
 function onGift(id, name, giftName, count, diamonds, avatar){
@@ -124,8 +130,8 @@ function onGift(id, name, giftName, count, diamonds, avatar){
   const prayer = (v.lastText && Date.now() - v.lastTextAt < 90_000 && v.lastText.length > 6) ? v.lastText : pickPrayer();
   const tier = coins >= 99 ? 3 : coins >= 10 ? 2 : 1;
   const line = `Cung chúc phát tài, vạn sự hanh thông. Quý khách ${spoken(v.name)} thành tâm dâng ${giftName}${count > 1 ? ', ' + count + ' lần' : ''}. ${prayer}.`;
-  broadcast({ t:'gift', id, name: v.name, giftName, count, coins, total: v.coins, tier, prayer });
-  say(line, { tag:'gift', id });
+  broadcast({ t:'gift', id, name: v.name, giftName, count, coins, total: v.coins, tier, prayer, demo:!!v.demo });
+  say(line, { tag:'gift', id, demo:!!v.demo });
 }
 
 function pickPrayer(){
@@ -139,7 +145,9 @@ const spoken = s => String(s).replace(/[_@.]+/g, ' ').replace(/[^\p{L}\p{N}\s]/g
 const ttsQueue = []; let ttsBusy = false, ttsSeq = 0;
 function say(text, meta = {}){
   if(meta.tag==='chant'&&ttsQueue.some(x=>x.meta.tag==='chant'))return;
-  ttsQueue.push({text:String(text).slice(0,1000),meta,voice:{voice:settings.voice,pitch:settings.pitch,rate:settings.rate}});pumpTTS();
+  const item={text:String(text).slice(0,1000),meta,voice:{voice:settings.voice,pitch:settings.pitch,rate:settings.rate}};
+  const before=(!meta.demo&&meta.tag!=='chant')?ttsQueue.findIndex(x=>x.meta.demo||x.meta.tag==='chant'):-1;
+  if(before<0)ttsQueue.push(item);else ttsQueue.splice(before,0,item);pumpTTS();
 }
 async function pumpTTS(){
   if(ttsBusy||!ttsQueue.length)return;ttsBusy=true;
@@ -186,7 +194,7 @@ async function connectTikTok(uniqueId){
       liveEvents.lastChatName=user?.name||'Không có ID';if(!user)liveEvents.missingUser++;
       broadcast({t:'liveEvents',...liveEvents},'control');
       if(!user){addLog('Bình luận TikTok nhận được nhưng thiếu ID người dùng');return;}
-      onChat(user.id,user.name,data.comment??data.text??'',user.avatar);
+      onChat(user.id,user.name,readChatText(data),user.avatar);
       addLog(`💬 Nhận bình luận TikTok: ${user.name} · ${viewers.has(user.id)?'đã vào sảnh':'sảnh đã đầy khách thật'}`);
     });
     conn.on(WebcastEvent.GIFT,data=>{
