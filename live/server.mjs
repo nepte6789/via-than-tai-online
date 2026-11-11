@@ -30,6 +30,7 @@ const settings = {
   rate: -20,                         // %
   music: true,
   autoChant: true, chantEveryMin: 3,
+  autoXinVia: true,
   seatMode: 'auto',                  // auto | 24 | 36 | 64 | 100
   joinOnEnter: false,                // also seat viewers who only enter the room
   gifts: { readAll: true, minDiamonds: 1 },
@@ -87,7 +88,7 @@ function onChat(id, name, text, avatar){
   if (!isNew && want && want !== v.skin){ v.skin = want; broadcast({ t:'skin', id, skin: want }); }
   v.lastText = text; v.lastTextAt = Date.now();
   broadcast({ t:'chat', id, name: v.name, text });
-  if (/^xin qu[eẻ]$/u.test(text.toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim())) drawFortune(v);
+  if (/^xin v[ií]a$/u.test(text.toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim())) drawFortune(v);
 }
 
 function drawFortune(v){
@@ -181,7 +182,11 @@ async function connectTikTok(uniqueId){
       addLog(`🎁 ${nm(d.user)} tặng ${gname} x${d.repeatCount || 1}`);
     });
     conn.on(WebcastEvent.MEMBER, d => { if (settings.joinOnEnter) seat(d.user?.uniqueId, nm(d.user), { avatar: av(d.user) }); });
-    conn.on(WebcastEvent.LIKE, d => broadcast({ t:'like', id: d.user?.uniqueId, n: d.likeCount || 1 }));
+    conn.on(WebcastEvent.LIKE, d => {
+      const user=d.user||d.common?.user||{};
+      const id=user.uniqueId||user.userId||d.userId||d.user_id;
+      if(id){const {v}=seat(String(id),nm(user),{avatar:av(user)});if(v)broadcast({t:'like',id:String(id),n:d.likeCount||d.totalLikeCount||1});}
+    });
     conn.on(ControlEvent.DISCONNECTED, () => { tiktokState = { ...tiktokState, status: 'disconnected' }; broadcast({ t:'tiktok', ...tiktokState }); addLog('TikTok: mất kết nối'); });
     conn.on(ControlEvent.ERROR, e => addLog('TikTok lỗi: ' + (e?.info || e?.message || e)));
     const st = await conn.connect();
@@ -230,14 +235,14 @@ const SETTING_RULES = {
   title: v => String(v).slice(0, 40), subtitle: v => String(v).slice(0, 60),
   voice: v => ['vi-VN-NamMinhNeural', 'vi-VN-HoaiMyNeural'].includes(v) ? v : settings.voice,
   pitch: v => clamp(v, -50, 50), rate: v => clamp(v, -50, 50), chantEveryMin: v => clamp(v, 1, 60),
-  music: Boolean, autoChant: Boolean, joinOnEnter: Boolean,
+  music: Boolean, autoChant: Boolean, autoXinVia: Boolean, joinOnEnter: Boolean,
   seatMode: v => ['auto', '24', '36', '64', '100'].includes(String(v)) ? String(v) : 'auto',
 };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, Math.round(+v || 0)));
 function applySettings(o){ for (const [k, fn] of Object.entries(SETTING_RULES)) if (k in o) settings[k] = fn(o[k]); }
 
 /* ----------------------------------------------------------------- bots */
-let botTimer=null, rotationTimer=null, botSerial=0;
+let botTimer=null, rotationTimer=null, autoViaTimer=null, botSerial=0;
 const botOptions={n:12,pace:'mid',rotateSeconds:90};
 const BOT_LINES=['Xin một lời chúc làm ăn hanh thông','Xin chúc gia đình bình an, tài lộc đủ đầy','Xin lời chúc buôn may bán đắt','Cầu công việc thuận lợi, vạn sự như ý','Xin lời chúc sức khỏe và may mắn'];
 const BOT_NAMES=['Minh Anh','Ngọc Hà','Thanh Mai','Quốc Bảo','Thùy Linh','Đức Huy','Kim Ngân','Tuấn Anh','Bảo Trâm','Hoàng Nam','Thu Hương','Gia Hân','Phúc An','Khánh Vy','Anh Khoa','Hải Yến','Trúc Linh','Mai Phương','Ngọc Minh','Quang Vinh','Thanh Tùng','Xuân Mai','Thiên Phúc','Đình Khang','Bảo Ngọc','Lan Anh','Hồng Nhung','Hải Đăng','Thảo Vy','Tuệ Anh','Minh Khôi','Ngọc Lan'];
@@ -252,8 +257,17 @@ function rotateBot(){
   if(bots.length){viewers.delete(bots[0].id);broadcast({t:'leave',id:bots[0].id});}
   if(bots.length||viewers.size<100)spawnBot();
 }
+function scheduleBotXinVia(){
+  clearTimeout(autoViaTimer);autoViaTimer=null;
+  if(!botTimer||!settings.autoXinVia)return;
+  autoViaTimer=setTimeout(()=>{
+    const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));
+    if(bots.length){const v=bots[Math.floor(Math.random()*bots.length)];onChat(v.id,v.name,'xin vía');addLog(`🤖 Bot ${v.name} tự xin vía`);}
+    scheduleBotXinVia();
+  },(45+Math.random()*105)*1000);
+}
 function setBots(on,n,pace,rotateSeconds){
-  clearInterval(botTimer);clearInterval(rotationTimer);botTimer=rotationTimer=null;
+  clearInterval(botTimer);clearInterval(rotationTimer);clearTimeout(autoViaTimer);botTimer=rotationTimer=autoViaTimer=null;
   Object.assign(botOptions,{n:clamp(n,1,100),pace:['slow','mid','fast'].includes(pace)?pace:'mid',rotateSeconds:clamp(rotateSeconds||90,15,3600)});
   const bots=[...viewers.values()].filter(v=>v.id.startsWith('bot_'));
   for(const v of bots.slice(on?botOptions.n:0)){viewers.delete(v.id);broadcast({t:'leave',id:v.id});}
@@ -267,6 +281,7 @@ function setBots(on,n,pace,rotateSeconds){
       else broadcast({t:'like',id:v.id,n:1});
     },{slow:6000,mid:4000,fast:2500}[botOptions.pace]);
     rotationTimer=setInterval(rotateBot,botOptions.rotateSeconds*1000);
+    scheduleBotXinVia();
   }
   addLog(on?`Bật ${botOptions.n} bot; đổi một khách mỗi ${botOptions.rotateSeconds} giây`:'Tắt bot');
   broadcast({t:'bots',on,...botOptions},'control');
@@ -280,11 +295,12 @@ function setBots(on,n,pace,rotateSeconds){
 //    same browser cannot send control commands
 //  • static files: only /assets and /live, no dot-files, no node_modules, no server source, no path escapes
 //  • no TikTok password, cookie or session is ever used or stored; only public room events are read
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const MIME = { '.html':'text/html; charset=utf-8', '.js':'text/javascript', '.css':'text/css', '.json':'application/json',
   '.woff':'font/woff', '.woff2':'font/woff2', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.mp3':'audio/mpeg', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
-const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`]);
-const okHost = h => ALLOWED_HOSTS.has(String(h || '').toLowerCase());
+const ALLOWED_HOSTS = new Set((process.env.ALLOWED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));
+const LOCAL_HOSTS = new Set([`localhost:${PORT}`,`127.0.0.1:${PORT}`,`[::1]:${PORT}`]);
+const okHost = h => {const host=String(h||'').toLowerCase();if(LOCAL_HOSTS.has(host)||ALLOWED_HOSTS.has(host)||ALLOWED_HOSTS.has('*'))return true;return HOST!=='127.0.0.1'&&HOST!=='::1'&&/^[a-z0-9.-]+(?::\d+)?$/.test(host);};
 const SEP = path.sep;
 function resolveStatic(urlPath){
   let p = urlPath === '/' ? '/live/control.html' : urlPath;
@@ -313,7 +329,7 @@ const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024,
   verifyClient: ({ origin, req }) => {
     if (!okHost(req.headers.host)) return false;
     if (!origin) return true;                                   // OBS / non-browser clients send no Origin
-    try { return okHost(new URL(origin).host); } catch { return false; }
+    try { const u=new URL(origin); return ['http:','https:'].includes(u.protocol)&&okHost(u.host)&&u.host.toLowerCase()===String(req.headers.host||'').toLowerCase(); } catch { return false; }
   } });
 function broadcast(msg, only){ const s = JSON.stringify(msg); for (const c of wss.clients) if (c.readyState === 1 && (!only || c.role === only)) c.send(s); }
 wss.on('connection', (ws, req) => {
